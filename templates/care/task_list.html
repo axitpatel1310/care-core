@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+
+{% block title %}Care Tasks | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <span class="eyebrow">
+            CARE OPERATIONS
+        </span>
+
+        <h2>
+            Care Tasks
+        </h2>
+
+        <p>
+            Manage care activities and staff responsibilities.
+        </p>
+
+    </div>
+
+
+    {% if perms.care.add_caretask %}
+
+    <a
+        href="{% url 'task_create' %}"
+        class="btn btn-primary"
+    >
+        + Create Task
+    </a>
+
+    {% endif %}
+
+</div>
+
+
+<div class="card">
+
+    <div class="toolbar">
+
+        <form method="GET">
+
+            <div class="search-box">
+
+                <span>⌕</span>
+
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ query }}"
+                    placeholder="Search task or resident..."
+                >
+
+            </div>
+
+        </form>
+
+
+        <form method="GET">
+
+            <select name="status" onchange="this.form.submit()">
+
+                <option value="">
+                    All Statuses
+                </option>
+
+                {% for value, label in status_choices %}
+
+                <option
+                    value="{{ value }}"
+                    {% if status == value %}selected{% endif %}
+                >
+                    {{ label }}
+                </option>
+
+                {% endfor %}
+
+            </select>
+
+        </form>
+
+
+        <form method="GET">
+
+            <select name="priority" onchange="this.form.submit()">
+
+                <option value="">
+                    All Priorities
+                </option>
+
+                {% for value, label in priority_choices %}
+
+                <option
+                    value="{{ value }}"
+                    {% if priority == value %}selected{% endif %}
+                >
+                    {{ label }}
+                </option>
+
+                {% endfor %}
+
+            </select>
+
+        </form>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Task</th>
+                    <th>Resident</th>
+                    <th>Assigned To</th>
+                    <th>Due</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for task in tasks %}
+
+                <tr>
+
+                    <td>
+
+                        <strong>
+                            {{ task.title }}
+                        </strong>
+
+                        <span class="table-subtext">
+                            {{ task.get_task_type_display }}
+                        </span>
+
+                    </td>
+
+
+                    <td>
+                        {{ task.resident }}
+                    </td>
+
+
+                    <td>
+
+                        {% if task.assigned_to %}
+
+                            {{ task.assigned_to.user.get_full_name }}
+
+                        {% else %}
+
+                            Unassigned
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+
+                        {{ task.due_date|date:"d M Y" }}
+
+                        {% if task.due_time %}
+                            {{ task.due_time|time:"H:i" }}
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+                        {{ task.get_priority_display }}
+                    </td>
+
+
+                    <td>
+                        {{ task.get_status_display }}
+                    </td>
+
+
+                    <td>
+
+                        <a
+                            href="{% url 'task_detail' task.pk %}"
+                            class="table-link"
+                        >
+                            View →
+                        </a>
+
+                    </td>
+
+                </tr>
+
+
+                {% empty %}
+
+                <tr>
+
+                    <td colspan="7">
+
+                        <div class="empty-state large">
+                            No care tasks found.
+                        </div>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

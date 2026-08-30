@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Delete Care Plan | CareCore
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <span class="eyebrow">
+            CARE MANAGEMENT
+        </span>
+
+        <h2>
+            Delete Care Plan
+        </h2>
+
+        <p>
+            This action cannot be undone.
+        </p>
+
+    </div>
+
+</div>
+
+
+<div class="card delete-card">
+
+    <div class="delete-icon">
+        !
+    </div>
+
+
+    <h3>
+        Delete this care plan?
+    </h3>
+
+
+    <p>
+
+        This will remove the care plan for
+
+        <strong>
+            {{ care_plan.resident.first_name }}
+            {{ care_plan.resident.last_name }}
+        </strong>.
+
+    </p>
+
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+        <div class="form-actions">
+
+            <a
+                href="{% url 'care_plan_detail' care_plan.pk %}"
+                class="btn btn-secondary"
+            >
+                Cancel
+            </a>
+
+            <button
+                type="submit"
+                class="btn btn-danger"
+            >
+                Delete Care Plan
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}

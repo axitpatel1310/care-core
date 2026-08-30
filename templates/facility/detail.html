@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block title %}{{ facility.name }} | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <a
+            href="{% url 'facility_list' %}"
+            class="back-link"
+        >
+            ← Facilities
+        </a>
+
+        <h2>
+            {{ facility.name }}
+        </h2>
+
+        <p>
+            {{ facility.address }}
+        </p>
+
+    </div>
+
+
+    {% if perms.facility.change_facility %}
+
+    <a
+        href="{% url 'facility_edit' facility.pk %}"
+        class="btn btn-secondary"
+    >
+        Edit Facility
+    </a>
+
+    {% endif %}
+
+</div>
+
+
+<div class="stats-grid">
+
+    <div class="stat-card">
+
+        <span class="stat-label">
+            Rooms
+        </span>
+
+        <div class="stat-value">
+            {{ facility.number_of_rooms }}
+        </div>
+
+    </div>
+
+
+    <div class="stat-card">
+
+        <span class="stat-label">
+            Occupancy
+        </span>
+
+        <div class="stat-value">
+            {{ facility.occupancy }}
+        </div>
+
+    </div>
+
+
+    <div class="stat-card">
+
+        <span class="stat-label">
+            Wards
+        </span>
+
+        <div class="stat-value">
+            {{ wards|length }}
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="card">
+
+    <div class="card-header">
+
+        <div>
+            <h3>Facility Information</h3>
+            <p>General facility details</p>
+        </div>
+
+    </div>
+
+
+    <div class="info-grid">
+
+        <div>
+            <span>Phone</span>
+            <strong>
+                {{ facility.phone|default:"—" }}
+            </strong>
+        </div>
+
+        <div>
+            <span>Email</span>
+            <strong>
+                {{ facility.email|default:"—" }}
+            </strong>
+        </div>
+
+        <div>
+            <span>Manager</span>
+            <strong>
+                {% if facility.manager %}
+                    {{ facility.manager.get_full_name }}
+                {% else %}
+                    —
+                {% endif %}
+            </strong>
+        </div>
+
+        <div>
+            <span>Status</span>
+            <strong>
+                {{ facility.get_status_display }}
+            </strong>
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="card" style="margin-top: 18px;">
+
+    <div class="card-header">
+
+        <div>
+            <h3>Wards & Rooms</h3>
+            <p>Facility physical structure</p>
+        </div>
+
+        {% if perms.facility.add_ward %}
+
+        <a
+            href="{% url 'ward_create' %}"
+            class="btn btn-primary"
+        >
+            + Add Ward
+        </a>
+
+        {% endif %}
+
+    </div>
+
+
+    {% for ward in wards %}
+
+    <div class="ward-block">
+
+        <div class="ward-header">
+
+            <div>
+
+                <strong>
+                    {{ ward.name }}
+                </strong>
+
+                <span>
+                    {{ ward.rooms.count }} room{{ ward.rooms.count|pluralize }}
+                </span>
+
+            </div>
+
+            <div>
+
+                {% if perms.facility.change_ward %}
+                <a
+                    href="{% url 'ward_edit' ward.pk %}"
+                    class="table-link"
+                >
+                    Edit
+                </a>
+                {% endif %}
+
+            </div>
+
+        </div>
+
+
+        <div class="room-grid">
+
+            {% for room in ward.rooms.all %}
+
+            <div class="room-card">
+
+                <div class="room-number">
+                    {{ room.room_number }}
+                </div>
+
+                <div class="room-info">
+
+                    <span>
+                        Capacity
+                    </span>
+
+                    <strong>
+                        {{ room.capacity }}
+                    </strong>
+
+                </div>
+
+                <div class="room-info">
+
+                    <span>
+                        Occupied
+                    </span>
+
+                    <strong>
+                        {{ room.occupied }}
+                    </strong>
+
+                </div>
+
+
+                <div class="room-actions">
+
+                    {% if perms.facility.change_room %}
+                    <a
+                        href="{% url 'room_edit' room.pk %}"
+                    >
+                        Edit
+                    </a>
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+            {% empty %}
+
+            <div class="empty-state">
+                No rooms in this ward.
+            </div>
+
+            {% endfor %}
+
+        </div>
+
+
+        {% if perms.facility.add_room %}
+
+        <div class="ward-footer">
+
+            <a
+                href="{% url 'room_create' %}"
+                class="table-link"
+            >
+                + Add Room
+            </a>
+
+        </div>
+
+        {% endif %}
+
+    </div>
+
+    {% empty %}
+
+    <div class="empty-state large">
+        No wards have been created yet.
+    </div>
+
+    {% endfor %}
+
+</div>
+
+{% endblock %}

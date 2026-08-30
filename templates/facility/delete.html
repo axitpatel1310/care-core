@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Delete | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+        <span class="eyebrow">CONFIRMATION</span>
+
+        <h2>Delete {{ object_type|default:"Facility" }}</h2>
+
+        <p>
+            This action cannot be undone.
+        </p>
+    </div>
+
+</div>
+
+
+<div class="card delete-card">
+
+    <div class="delete-icon">
+        !
+    </div>
+
+    <h3>
+        Are you sure?
+    </h3>
+
+    <p>
+        You are about to permanently delete
+        <strong>
+            {{ facility.name|default:object }}
+        </strong>.
+    </p>
+
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+        <div class="form-actions">
+
+            <a
+                href="{% url 'facility_list' %}"
+                class="btn btn-secondary"
+            >
+                Cancel
+            </a>
+
+            <button
+                type="submit"
+                class="btn btn-danger"
+            >
+                Delete
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}

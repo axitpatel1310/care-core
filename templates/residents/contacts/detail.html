@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {{ contact.name }} | CareCore
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <a
+            href="{% url 'resident_detail' contact.resident.pk %}"
+            class="back-link"
+        >
+            ← {{ contact.resident.first_name }}
+            {{ contact.resident.last_name }}
+        </a>
+
+        <h2>
+            {{ contact.name }}
+        </h2>
+
+        <p>
+            {{ contact.get_contact_type_display }}
+        </p>
+
+    </div>
+
+
+    <div class="detail-actions">
+
+        {% if perms.residents.change_residentcontact %}
+
+        <a
+            href="{% url 'contact_edit' contact.pk %}"
+            class="btn btn-secondary"
+        >
+            Edit
+        </a>
+
+        {% endif %}
+
+
+        {% if perms.residents.delete_residentcontact %}
+
+        <a
+            href="{% url 'contact_delete' contact.pk %}"
+            class="btn btn-danger"
+        >
+            Delete
+        </a>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<div class="card">
+
+    <div class="card-header">
+
+        <div>
+
+            <h3>
+                Contact Information
+            </h3>
+
+        </div>
+
+    </div>
+
+
+    <div class="info-grid">
+
+        <div>
+
+            <span>
+                Name
+            </span>
+
+            <strong>
+                {{ contact.name }}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>
+                Contact Type
+            </span>
+
+            <strong>
+                {{ contact.get_contact_type_display }}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>
+                Relationship
+            </span>
+
+            <strong>
+                {{ contact.relationship }}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>
+                Phone
+            </span>
+
+            <strong>
+                {{ contact.phone }}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>
+                Email
+            </span>
+
+            <strong>
+                {{ contact.email|default:"—" }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <div class="text-content" style="margin-top: 25px;">
+
+        <span class="field-label">
+            Address
+        </span>
+
+        {% if contact.address %}
+
+            {{ contact.address|linebreaks }}
+
+        {% else %}
+
+            <span class="text-muted">
+                No address recorded.
+            </span>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}

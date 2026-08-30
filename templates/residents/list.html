@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+
+{% block title %}Residents | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <span class="eyebrow">
+            CARE MANAGEMENT
+        </span>
+
+        <h2>
+            Residents
+        </h2>
+
+        <p>
+            Manage resident records and care information.
+        </p>
+
+    </div>
+
+
+    {% if perms.residents.add_resident %}
+
+    <a
+        href="{% url 'resident_create' %}"
+        class="btn btn-primary"
+    >
+        + Add Resident
+    </a>
+
+    {% endif %}
+
+</div>
+
+
+<div class="card">
+
+    <div class="toolbar">
+
+        <form
+            method="GET"
+            class="resident-search-form"
+        >
+
+            <div class="search-box">
+
+                <span>⌕</span>
+
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ query }}"
+                    placeholder="Search residents..."
+                >
+
+            </div>
+
+
+            <select
+                name="status"
+                class="filter-select"
+            >
+
+                <option value="">
+                    All statuses
+                </option>
+
+                <option
+                    value="active"
+                    {% if status == "active" %}selected{% endif %}
+                >
+                    Active
+                </option>
+
+                <option
+                    value="inactive"
+                    {% if status == "inactive" %}selected{% endif %}
+                >
+                    Inactive
+                </option>
+
+            </select>
+
+
+            <select
+                name="care_level"
+                class="filter-select"
+            >
+
+                <option value="">
+                    All care levels
+                </option>
+
+                <option
+                    value="low"
+                    {% if care_level == "low" %}selected{% endif %}
+                >
+                    Low
+                </option>
+
+                <option
+                    value="medium"
+                    {% if care_level == "medium" %}selected{% endif %}
+                >
+                    Medium
+                </option>
+
+                <option
+                    value="high"
+                    {% if care_level == "high" %}selected{% endif %}
+                >
+                    High
+                </option>
+
+            </select>
+
+
+            <button
+                type="submit"
+                class="btn btn-secondary"
+            >
+                Filter
+            </button>
+
+        </form>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Resident</th>
+                    <th>Date of Birth</th>
+                    <th>Room</th>
+                    <th>Ward</th>
+                    <th>Care Level</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for resident in residents %}
+
+                <tr>
+
+                    <td>
+
+                        <div class="table-person">
+
+                            <div class="avatar">
+
+                                {{ resident.first_name|first }}
+                                {{ resident.last_name|first }}
+
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    {{ resident.first_name }}
+                                    {{ resident.last_name }}
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+                    </td>
+
+
+                    <td>
+                        {{ resident.date_of_birth|date:"d M Y" }}
+                    </td>
+
+
+                    <td>
+
+                        {% if resident.room %}
+                            {{ resident.room.room_number }}
+                        {% else %}
+                            —
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+
+                        {% if resident.room %}
+                            {{ resident.room.ward.name }}
+                        {% else %}
+                            —
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+
+                        <span class="care-badge">
+                            {{ resident.get_care_level_display }}
+                        </span>
+
+                    </td>
+
+
+                    <td>
+
+                        <span class="status-badge active">
+                            {{ resident.get_status_display }}
+                        </span>
+
+                    </td>
+
+
+                    <td>
+
+                        <a
+                            href="{% url 'resident_detail' resident.pk %}"
+                            class="table-link"
+                        >
+                            View →
+                        </a>
+
+                    </td>
+
+                </tr>
+
+
+                {% empty %}
+
+                <tr>
+
+                    <td colspan="7">
+
+                        <div class="empty-state large">
+
+                            No residents found.
+
+                            {% if perms.residents.add_resident %}
+
+                            <div style="margin-top: 12px;">
+
+                                <a
+                                    href="{% url 'resident_create' %}"
+                                    class="btn btn-primary"
+                                >
+                                    Add First Resident
+                                </a>
+
+                            </div>
+
+                            {% endif %}
+
+                        </div>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

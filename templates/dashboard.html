@@ -1,0 +1,390 @@
+
+{% extends "base.html" %}
+
+{% block title %}
+Dashboard | CareCore
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+        <span class="eyebrow">
+            CARECORE
+        </span>
+
+        <h2>
+            Dashboard
+        </h2>
+
+        <p>
+            Overview for {{ today|date:"l, d F Y" }}.
+        </p>
+    </div>
+
+</div>
+
+
+<!-- KPI CARDS -->
+
+<div class="dashboard-grid">
+
+    <div class="stat-card">
+
+        <span class="stat-label">
+            Active Residents
+        </span>
+
+        <strong class="stat-number">
+            {{ residents_count }}
+        </strong>
+
+        <a href="{% url 'resident_list' %}">
+            View residents →
+        </a>
+
+    </div>
+
+
+    <div class="stat-card">
+
+        <span class="stat-label">
+            Staff
+        </span>
+
+        <strong class="stat-number">
+            {{ staff_count }}
+        </strong>
+
+        <a href="{% url 'staff_list' %}">
+            View staff →
+        </a>
+
+    </div>
+
+
+    <div class="stat-card">
+
+        <span class="stat-label">
+            Today's Appointments
+        </span>
+
+        <strong class="stat-number">
+            {{ appointments_today_count }}
+        </strong>
+
+        <a href="{% url 'appointment_list' %}">
+            View appointments →
+        </a>
+
+    </div>
+
+
+    <div class="stat-card">
+
+        <span class="stat-label">
+            Open Incidents
+        </span>
+
+        <strong class="stat-number">
+            {{ open_incidents_count }}
+        </strong>
+
+        <a href="{% url 'incident_list' %}">
+            View incidents →
+        </a>
+
+    </div>
+
+</div>
+
+
+<!-- CRITICAL INCIDENT ALERT -->
+
+{% if critical_incidents %}
+
+<div class="card alert-card">
+
+    <div class="card-header">
+
+        <div>
+            <h3>
+                Critical Incidents
+            </h3>
+
+            <span class="card-subtitle">
+                Immediate attention required
+            </span>
+        </div>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Resident</th>
+                    <th>Category</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for incident in critical_incidents %}
+
+                <tr>
+
+                    <td>
+                        {% if incident.resident %}
+                            {{ incident.resident }}
+                        {% else %}
+                            Facility
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {{ incident.get_category_display }}
+                    </td>
+
+                    <td>
+                        {{ incident.incident_date|date:"d M Y H:i" }}
+                    </td>
+
+                    <td>
+                        <span class="status-badge status-{{ incident.status }}">
+                            {{ incident.get_status_display }}
+                        </span>
+                    </td>
+
+                    <td>
+                        <a
+                            href="{% url 'incident_detail' incident.pk %}"
+                            class="table-link"
+                        >
+                            Open →
+                        </a>
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endif %}
+
+
+<!-- TODAY'S APPOINTMENTS -->
+
+<div class="card">
+
+    <div class="card-header">
+
+        <div>
+            <h3>
+                Today's Appointments
+            </h3>
+
+            <span class="card-subtitle">
+                {{ appointments_today_count }}
+                appointment{{ appointments_today_count|pluralize }}
+            </span>
+        </div>
+
+        <a
+            href="{% url 'appointment_list' %}"
+            class="table-link"
+        >
+            View all →
+        </a>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Time</th>
+                    <th>Resident</th>
+                    <th>Appointment</th>
+                    <th>Staff</th>
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for appointment in appointments_today %}
+
+                <tr>
+
+                    <td>
+                        {{ appointment.appointment_time|time:"H:i" }}
+                    </td>
+
+                    <td>
+                        {{ appointment.resident }}
+                    </td>
+
+                    <td>
+                        {{ appointment.title }}
+                    </td>
+
+                    <td>
+                        {{ appointment.assigned_staff|default:"—" }}
+                    </td>
+
+                </tr>
+
+                {% empty %}
+
+                <tr>
+
+                    <td colspan="4">
+
+                        <div class="empty-state">
+                            No appointments scheduled for today.
+                        </div>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+<!-- OPEN INCIDENTS -->
+
+<div class="card">
+
+    <div class="card-header">
+
+        <div>
+            <h3>
+                Open Incidents
+            </h3>
+
+            <span class="card-subtitle">
+                {{ open_incidents_count }}
+                unresolved incident{{ open_incidents_count|pluralize }}
+            </span>
+        </div>
+
+        <a
+            href="{% url 'incident_list' %}"
+            class="table-link"
+        >
+            View all →
+        </a>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Resident</th>
+                    <th>Category</th>
+                    <th>Severity</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for incident in open_incidents %}
+
+                <tr>
+
+                    <td>
+                        {% if incident.resident %}
+                            {{ incident.resident }}
+                        {% else %}
+                            Facility
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {{ incident.get_category_display }}
+                    </td>
+
+                    <td>
+                        {{ incident.get_severity_display }}
+                    </td>
+
+                    <td>
+                        {{ incident.incident_date|date:"d M Y H:i" }}
+                    </td>
+
+                    <td>
+
+                        <span class="status-badge status-{{ incident.status }}">
+                            {{ incident.get_status_display }}
+                        </span>
+
+                    </td>
+
+                </tr>
+
+                {% empty %}
+
+                <tr>
+
+                    <td colspan="5">
+
+                        <div class="empty-state">
+                            No open incidents. Everything is clear.
+                        </div>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+{% endblock %}

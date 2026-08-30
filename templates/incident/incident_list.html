@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block title %}Incidents | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <span class="eyebrow">
+            SAFETY & REPORTING
+        </span>
+
+        <h2>
+            Incidents
+        </h2>
+
+        <p>
+            Review and manage resident incidents.
+        </p>
+
+    </div>
+
+
+    {% if perms.incident.add_incident %}
+
+    <a
+        href="{% url 'incident_create' %}"
+        class="btn btn-primary"
+    >
+        + Report Incident
+    </a>
+
+    {% endif %}
+
+</div>
+
+
+<div class="card">
+
+    <div class="toolbar">
+
+        <form method="GET">
+
+            <div class="search-box">
+
+                <span>⌕</span>
+
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ query }}"
+                    placeholder="Search incidents..."
+                >
+
+            </div>
+
+        </form>
+
+
+        <form method="GET">
+
+            <select
+                name="status"
+                onchange="this.form.submit()"
+            >
+
+                <option value="">
+                    All Statuses
+                </option>
+
+                {% for value, label in status_choices %}
+
+                <option
+                    value="{{ value }}"
+                    {% if status == value %}selected{% endif %}
+                >
+                    {{ label }}
+                </option>
+
+                {% endfor %}
+
+            </select>
+
+        </form>
+
+
+        <form method="GET">
+
+            <select
+                name="severity"
+                onchange="this.form.submit()"
+            >
+
+                <option value="">
+                    All Severity
+                </option>
+
+                {% for value, label in severity_choices %}
+
+                <option
+                    value="{{ value }}"
+                    {% if severity == value %}selected{% endif %}
+                >
+                    {{ label }}
+                </option>
+
+                {% endfor %}
+
+            </select>
+
+        </form>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Incident</th>
+                    <th>Resident</th>
+                    <th>Date</th>
+                    <th>Category</th>
+                    <th>Severity</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for incident in incidents %}
+
+                <tr>
+
+                    <td>
+
+                        <strong>
+                            Incident #{{ incident.id }}
+                        </strong>
+
+                        <span class="table-subtext">
+                            {{ incident.description|truncatechars:60 }}
+                        </span>
+
+                    </td>
+
+
+                    <td>
+
+                        {% if incident.resident %}
+                            {{ incident.resident }}
+                        {% else %}
+                            No resident
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+                        {{ incident.incident_date|date:"d M Y, H:i" }}
+                    </td>
+
+
+                    <td>
+                        {{ incident.get_category_display }}
+                    </td>
+
+
+                    <td>
+                        {{ incident.get_severity_display }}
+                    </td>
+
+
+                    <td>
+                        {{ incident.get_status_display }}
+                    </td>
+
+
+                    <td>
+
+                        <a
+                            href="{% url 'incident_detail' incident.pk %}"
+                            class="table-link"
+                        >
+                            View →
+                        </a>
+
+                    </td>
+
+                </tr>
+
+
+                {% empty %}
+
+                <tr>
+
+                    <td colspan="7">
+
+                        <div class="empty-state large">
+                            No incidents found.
+                        </div>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

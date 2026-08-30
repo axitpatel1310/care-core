@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Delete Staff | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <span class="eyebrow">
+            STAFF MANAGEMENT
+        </span>
+
+        <h2>
+            Delete Staff Member
+        </h2>
+
+        <p>
+            This action cannot be undone.
+        </p>
+
+    </div>
+
+</div>
+
+
+<div class="card delete-card">
+
+    <div class="delete-icon">
+        !
+    </div>
+
+
+    <h3>
+        Delete {{ staff_member.user.get_full_name }}?
+    </h3>
+
+
+    <p>
+
+        This will permanently remove the staff record for
+
+        <strong>
+            {{ staff_member.user.get_full_name }}
+        </strong>
+
+        from CareCore.
+
+    </p>
+
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+        <div class="form-actions">
+
+            <a
+                href="{% url 'staff_detail' staff_member.pk %}"
+                class="btn btn-secondary"
+            >
+                Cancel
+            </a>
+
+            <button
+                type="submit"
+                class="btn btn-danger"
+            >
+                Delete Staff
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}

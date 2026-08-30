@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Delete Incident | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <h2>
+            Delete Incident
+        </h2>
+
+        <p>
+            This action cannot be undone.
+        </p>
+
+    </div>
+
+</div>
+
+
+<div class="card delete-card">
+
+    <h3>
+        Delete Incident #{{ incident.id }}?
+    </h3>
+
+    <p>
+        This will permanently remove this incident record.
+    </p>
+
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+        <div class="form-actions">
+
+            <a
+                href="{% url 'incident_detail' incident.pk %}"
+                class="btn btn-secondary"
+            >
+                Cancel
+            </a>
+
+            <button
+                type="submit"
+                class="btn btn-danger"
+            >
+                Delete Incident
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}

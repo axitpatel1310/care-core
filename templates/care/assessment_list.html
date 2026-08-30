@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Assessments | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <span class="eyebrow">
+            CARE MANAGEMENT
+        </span>
+
+        <h2>
+            Assessments
+        </h2>
+
+        <p>
+            Manage resident assessments and review schedules.
+        </p>
+
+    </div>
+
+
+    {% if perms.care.add_assessment %}
+
+    <a
+        href="{% url 'assessment_create' %}"
+        class="btn btn-primary"
+    >
+        + Add Assessment
+    </a>
+
+    {% endif %}
+
+</div>
+
+
+<div class="card">
+
+    <div class="toolbar">
+
+        <form
+            method="GET"
+            class="staff-search-form"
+        >
+
+            <div class="search-box">
+
+                <span>⌕</span>
+
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ query }}"
+                    placeholder="Search resident..."
+                >
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="btn btn-secondary"
+            >
+                Search
+            </button>
+
+        </form>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>Resident</th>
+                    <th>Assessment</th>
+                    <th>Date</th>
+                    <th>Performed By</th>
+                    <th>Next Review</th>
+                    <th></th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for assessment in assessments %}
+
+                <tr>
+
+                    <td>
+
+                        <strong>
+                            {{ assessment.resident.first_name }}
+                            {{ assessment.resident.last_name }}
+                        </strong>
+
+                    </td>
+
+
+                    <td>
+                        {{ assessment.get_assessment_type_display }}
+                    </td>
+
+
+                    <td>
+                        {{ assessment.assessment_date|date:"d M Y" }}
+                    </td>
+
+
+                    <td>
+
+                        {% if assessment.performed_by %}
+
+                            {{ assessment.performed_by.user.get_full_name }}
+
+                        {% else %}
+
+                            —
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+                        {{ assessment.next_review|date:"d M Y"|default:"—" }}
+                    </td>
+
+
+                    <td>
+
+                        <a
+                            href="{% url 'assessment_detail' assessment.pk %}"
+                            class="table-link"
+                        >
+                            View →
+                        </a>
+
+                    </td>
+
+                </tr>
+
+
+                {% empty %}
+
+                <tr>
+
+                    <td colspan="6">
+
+                        <div class="empty-state large">
+                            No assessments found.
+                        </div>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

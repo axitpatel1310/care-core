@@ -1,0 +1,105 @@
+
+{% extends "base.html" %}
+
+{% block title %}
+{{ title }} | CareCore
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <a
+            href="{% url 'medication_list' %}"
+            class="back-link"
+        >
+            ← Medications
+        </a>
+
+        <h2>
+            {{ title }}
+        </h2>
+
+        <p>
+            Add or update a resident medication.
+        </p>
+
+    </div>
+
+</div>
+
+
+<div class="card form-card">
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+
+        {% if form.non_field_errors %}
+
+        <div class="form-error">
+
+            {{ form.non_field_errors }}
+
+        </div>
+
+        {% endif %}
+
+
+        {% for field in form %}
+
+        <div class="form-group">
+
+            {{ field.label_tag }}
+
+            {{ field }}
+
+
+            {% if field.help_text %}
+
+            <small>
+                {{ field.help_text }}
+            </small>
+
+            {% endif %}
+
+
+            {% for error in field.errors %}
+
+            <div class="field-error">
+                {{ error }}
+            </div>
+
+            {% endfor %}
+
+        </div>
+
+        {% endfor %}
+
+
+        <div class="form-actions">
+
+            <a
+                href="{% url 'medication_list' %}"
+                class="btn btn-secondary"
+            >
+                Cancel
+            </a>
+
+            <button
+                type="submit"
+                class="btn btn-primary"
+            >
+                {{ button_text }}
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}

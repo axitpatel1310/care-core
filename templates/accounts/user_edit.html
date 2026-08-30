@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}
+Edit User | CareCore
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+<div>
+
+    <a
+        href="{% url 'user_management' %}"
+        class="back-link"
+    >
+        ← User Management
+    </a>
+
+    <span class="eyebrow">
+        ADMINISTRATION
+    </span>
+
+    <h2>
+        Edit User
+    </h2>
+
+    <p>
+        Manage account details and access level.
+    </p>
+
+</div>
+```
+
+</div>
+
+<div class="card form-card">
+
+```
+<form method="POST">
+
+    {% csrf_token %}
+
+    {% for field in form %}
+
+    <div class="form-group">
+
+        {{ field.label_tag }}
+
+        {{ field }}
+
+        {% for error in field.errors %}
+
+            <div class="field-error">
+                {{ error }}
+            </div>
+
+        {% endfor %}
+
+    </div>
+
+    {% endfor %}
+
+
+    <div class="form-actions">
+
+        <a
+            href="{% url 'user_management' %}"
+            class="btn btn-secondary"
+        >
+            Cancel
+        </a>
+
+        <button
+            type="submit"
+            class="btn btn-primary"
+        >
+            Save Changes
+        </button>
+
+    </div>
+
+</form>
+
+</div>
+
+{% endblock %}

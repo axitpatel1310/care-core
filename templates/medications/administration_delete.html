@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Delete Administration | CareCore
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <h2>
+            Delete Administration Record
+        </h2>
+
+        <p>
+            This action cannot be undone.
+        </p>
+
+    </div>
+
+</div>
+
+
+<div class="card delete-card">
+
+    <div class="delete-icon">
+        !
+    </div>
+
+
+    <h3>
+        Delete this administration record?
+    </h3>
+
+
+    <p>
+
+        This will remove the
+
+        <strong>
+            {{ administration.get_status_display }}
+        </strong>
+
+        record for
+
+        <strong>
+            {{ administration.medication.name }}
+        </strong>.
+
+    </p>
+
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+        <div class="form-actions">
+
+            <a
+                href="{% url 'administration_detail' administration.pk %}"
+                class="btn btn-secondary"
+            >
+                Cancel
+            </a>
+
+            <button
+                type="submit"
+                class="btn btn-danger"
+            >
+                Delete Record
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}

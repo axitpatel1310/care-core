@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}Staff Assignments | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <span class="eyebrow">
+            STAFF MANAGEMENT
+        </span>
+
+        <h2>
+            Staff Assignments
+        </h2>
+
+        <p>
+            Manage staff responsibilities for residents.
+        </p>
+
+    </div>
+
+    {% if perms.staff.add_residentstaffassignment %}
+
+    <a
+        href="{% url 'assignment_create' %}"
+        class="btn btn-primary"
+    >
+        + Assign Staff
+    </a>
+
+    {% endif %}
+
+</div>
+
+
+<div class="card">
+
+    <div class="toolbar">
+
+        <form method="GET">
+
+            <div class="search-box">
+
+                <span>⌕</span>
+
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ query }}"
+                    placeholder="Search resident or staff..."
+                >
+
+            </div>
+
+        </form>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Resident</th>
+                    <th>Staff</th>
+                    <th>Role</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for assignment in assignments %}
+
+                <tr>
+
+                    <td>
+
+                        <strong>
+
+                            {{ assignment.resident.first_name }}
+                            {{ assignment.resident.last_name }}
+
+                        </strong>
+
+                    </td>
+
+
+                    <td>
+
+                        {{ assignment.staff.user.get_full_name }}
+
+                    </td>
+
+
+                    <td>
+
+                        {{ assignment.get_role_display }}
+
+                    </td>
+
+
+                    <td>
+
+                        {{ assignment.start_date|date:"d M Y" }}
+
+                    </td>
+
+
+                    <td>
+
+                        {% if assignment.end_date %}
+
+                            {{ assignment.end_date|date:"d M Y" }}
+
+                        {% else %}
+
+                            —
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+
+                        {% if assignment.is_active %}
+
+                            <span class="status-badge active">
+                                Active
+                            </span>
+
+                        {% else %}
+
+                            <span class="status-badge stopped">
+                                Inactive
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+
+                        <a
+                            href="{% url 'assignment_detail' assignment.pk %}"
+                            class="table-link"
+                        >
+                            View →
+                        </a>
+
+                    </td>
+
+                </tr>
+
+                {% empty %}
+
+                <tr>
+
+                    <td colspan="7">
+
+                        <div class="empty-state large">
+                            No staff assignments found.
+                        </div>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

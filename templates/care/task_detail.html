@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block title %}{{ task.title }} | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <a
+            href="{% url 'task_list' %}"
+            class="back-link"
+        >
+            ← Care Tasks
+        </a>
+
+        <h2>
+            {{ task.title }}
+        </h2>
+
+        <p>
+            {{ task.resident }}
+        </p>
+
+    </div>
+
+
+    <div class="detail-actions">
+
+        {% if task.status != "completed" and task.status != "cancelled" %}
+
+        {% if perms.care.change_caretask %}
+
+        <form
+            method="POST"
+            action="{% url 'task_complete' task.pk %}"
+            style="display:inline;"
+        >
+
+            {% csrf_token %}
+
+            <button
+                type="submit"
+                class="btn btn-primary"
+            >
+                ✓ Complete Task
+            </button>
+
+        </form>
+
+        {% endif %}
+
+        {% endif %}
+
+
+        {% if perms.care.change_caretask %}
+
+        <a
+            href="{% url 'task_edit' task.pk %}"
+            class="btn btn-secondary"
+        >
+            Edit
+        </a>
+
+        {% endif %}
+
+
+        {% if perms.care.delete_caretask %}
+
+        <a
+            href="{% url 'task_delete' task.pk %}"
+            class="btn btn-danger"
+        >
+            Delete
+        </a>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<div class="card">
+
+    <div class="info-grid">
+
+        <div>
+
+            <span>Resident</span>
+
+            <strong>
+                {{ task.resident }}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>Task Type</span>
+
+            <strong>
+                {{ task.get_task_type_display }}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>Assigned To</span>
+
+            <strong>
+
+                {% if task.assigned_to %}
+
+                    {{ task.assigned_to.user.get_full_name }}
+
+                {% else %}
+
+                    Unassigned
+
+                {% endif %}
+
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>Priority</span>
+
+            <strong>
+                {{ task.get_priority_display }}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>Status</span>
+
+            <strong>
+                {{ task.get_status_display }}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>Due</span>
+
+            <strong>
+
+                {{ task.due_date|date:"d M Y" }}
+
+                {% if task.due_time %}
+                    {{ task.due_time|time:"H:i" }}
+                {% endif %}
+
+            </strong>
+
+        </div>
+
+
+        {% if task.completed_at %}
+
+        <div>
+
+            <span>Completed At</span>
+
+            <strong>
+                {{ task.completed_at|date:"d M Y, H:i" }}
+            </strong>
+
+        </div>
+
+        {% endif %}
+
+
+        {% if task.completed_by %}
+
+        <div>
+
+            <span>Completed By</span>
+
+            <strong>
+                {{ task.completed_by.user.get_full_name }}
+            </strong>
+
+        </div>
+
+        {% endif %}
+
+    </div>
+
+
+    <div class="card-section">
+
+        <h3>
+            Description
+        </h3>
+
+        {% if task.description %}
+
+            {{ task.description|linebreaks }}
+
+        {% else %}
+
+            <span class="text-muted">
+                No description provided.
+            </span>
+
+        {% endif %}
+
+    </div>
+
+
+    <div class="card-section">
+
+        <h3>
+            Notes
+        </h3>
+
+        {% if task.notes %}
+
+            {{ task.notes|linebreaks }}
+
+        {% else %}
+
+            <span class="text-muted">
+                No notes recorded.
+            </span>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}

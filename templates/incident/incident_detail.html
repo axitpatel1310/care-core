@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+
+{% block title %}
+Incident #{{ incident.id }} | CareCore
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <a
+            href="{% url 'incident_list' %}"
+            class="back-link"
+        >
+            ← Incidents
+        </a>
+
+        <h2>
+            Incident #{{ incident.id }}
+        </h2>
+
+        <p>
+            {{ incident.get_category_display }}
+        </p>
+
+    </div>
+
+
+    <div class="detail-actions">
+
+        {% if incident.status != "resolved" %}
+
+        {% if perms.incident.change_incident %}
+
+        <form
+            method="POST"
+            action="{% url 'incident_resolve' incident.pk %}"
+            style="display:inline;"
+        >
+
+            {% csrf_token %}
+
+            <button
+                type="submit"
+                class="btn btn-primary"
+            >
+                ✓ Resolve Incident
+            </button>
+
+        </form>
+
+        {% endif %}
+
+        {% endif %}
+
+
+        {% if perms.incident.change_incident %}
+
+        <a
+            href="{% url 'incident_edit' incident.pk %}"
+            class="btn btn-secondary"
+        >
+            Edit
+        </a>
+
+        {% endif %}
+
+
+        {% if perms.incident.delete_incident %}
+
+        <a
+            href="{% url 'incident_delete' incident.pk %}"
+            class="btn btn-danger"
+        >
+            Delete
+        </a>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<div class="card">
+
+    <div class="info-grid">
+
+        <div>
+
+            <span>Resident</span>
+
+            <strong>
+
+                {% if incident.resident %}
+
+                    {{ incident.resident }}
+
+                {% else %}
+
+                    No resident assigned
+
+                {% endif %}
+
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>Reported By</span>
+
+            <strong>
+
+                {% if incident.reported_by %}
+
+                    {{ incident.reported_by.user.get_full_name }}
+
+                {% else %}
+
+                    —
+
+                {% endif %}
+
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>Incident Date</span>
+
+            <strong>
+                {{ incident.incident_date|date:"d M Y, H:i" }}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>Category</span>
+
+            <strong>
+                {{ incident.get_category_display }}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>Severity</span>
+
+            <strong>
+                {{ incident.get_severity_display }}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>Status</span>
+
+            <strong>
+                {{ incident.get_status_display }}
+            </strong>
+
+        </div>
+
+
+        {% if incident.resolved_at %}
+
+        <div>
+
+            <span>Resolved At</span>
+
+            <strong>
+                {{ incident.resolved_at|date:"d M Y, H:i" }}
+            </strong>
+
+        </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<div class="card">
+
+    <div class="card-section">
+
+        <h3>
+            Description
+        </h3>
+
+        {{ incident.description|linebreaks }}
+
+    </div>
+
+
+    <div class="card-section">
+
+        <h3>
+            Immediate Action
+        </h3>
+
+        {% if incident.immediate_action %}
+
+            {{ incident.immediate_action|linebreaks }}
+
+        {% else %}
+
+            <span class="text-muted">
+                No immediate action recorded.
+            </span>
+
+        {% endif %}
+
+    </div>
+
+
+    <div class="card-section">
+
+        <h3>
+            Investigation Notes
+        </h3>
+
+        {% if incident.investigation_notes %}
+
+            {{ incident.investigation_notes|linebreaks }}
+
+        {% else %}
+
+            <span class="text-muted">
+                No investigation notes recorded.
+            </span>
+
+        {% endif %}
+
+    </div>
+
+
+    <div class="card-section">
+
+        <h3>
+            Corrective Action
+        </h3>
+
+        {% if incident.corrective_action %}
+
+            {{ incident.corrective_action|linebreaks }}
+
+        {% else %}
+
+            <span class="text-muted">
+                No corrective action recorded.
+            </span>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}

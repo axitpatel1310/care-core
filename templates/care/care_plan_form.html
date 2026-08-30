@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {{ title }} | CareCore
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <a
+            href="{% url 'care_plan_list' %}"
+            class="back-link"
+        >
+            ← Care Plans
+        </a>
+
+        <h2>
+            {{ title }}
+        </h2>
+
+        <p>
+            Create and manage a resident care plan.
+        </p>
+
+    </div>
+
+</div>
+
+
+<div class="card form-card care-plan-form-card">
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+
+        {% if form.non_field_errors %}
+
+        <div class="form-errors">
+            {{ form.non_field_errors }}
+        </div>
+
+        {% endif %}
+
+
+        <div class="form-section">
+
+            <div class="form-section-title">
+
+                <h3>
+                    Plan Assignment
+                </h3>
+
+                <p>
+                    Select the resident and responsible staff member.
+                </p>
+
+            </div>
+
+
+            {% for field in form %}
+
+                {% if field.name == "resident" or field.name == "responsible_staff" %}
+
+                <div class="form-group">
+
+                    {{ field.label_tag }}
+
+                    {{ field }}
+
+                    {% for error in field.errors %}
+
+                    <div class="field-error">
+                        {{ error }}
+                    </div>
+
+                    {% endfor %}
+
+                </div>
+
+                {% endif %}
+
+            {% endfor %}
+
+        </div>
+
+
+        <div class="form-section">
+
+            <div class="form-section-title">
+
+                <h3>
+                    Review & Status
+                </h3>
+
+                <p>
+                    Track the lifecycle of this care plan.
+                </p>
+
+            </div>
+
+
+            <div class="form-grid">
+
+                {% for field in form %}
+
+                    {% if field.name == "last_reviewed" or field.name == "next_review" or field.name == "status" %}
+
+                    <div class="form-group">
+
+                        {{ field.label_tag }}
+
+                        {{ field }}
+
+                        {% for error in field.errors %}
+
+                        <div class="field-error">
+                            {{ error }}
+                        </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                    {% endif %}
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+
+        <div class="form-section">
+
+            <div class="form-section-title">
+
+                <h3>
+                    Care Requirements
+                </h3>
+
+                <p>
+                    Record the resident's specific support requirements.
+                </p>
+
+            </div>
+
+
+            {% for field in form %}
+
+                {% if field.name == "mobility" or field.name == "nutrition" or field.name == "personal_care" or field.name == "communication" or field.name == "cognitive_support" or field.name == "behavioural_support" %}
+
+                <div class="form-group">
+
+                    {{ field.label_tag }}
+
+                    {{ field }}
+
+                    {% for error in field.errors %}
+
+                    <div class="field-error">
+                        {{ error }}
+                    </div>
+
+                    {% endfor %}
+
+                </div>
+
+                {% endif %}
+
+            {% endfor %}
+
+        </div>
+
+
+        <div class="form-section">
+
+            <div class="form-section-title">
+
+                <h3>
+                    Notes
+                </h3>
+
+            </div>
+
+
+            {% for field in form %}
+
+                {% if field.name == "notes" %}
+
+                <div class="form-group">
+
+                    {{ field.label_tag }}
+
+                    {{ field }}
+
+                    {% for error in field.errors %}
+
+                    <div class="field-error">
+                        {{ error }}
+                    </div>
+
+                    {% endfor %}
+
+                </div>
+
+                {% endif %}
+
+            {% endfor %}
+
+        </div>
+
+
+        <div class="form-actions">
+
+            <a
+                href="{% url 'care_plan_list' %}"
+                class="btn btn-secondary"
+            >
+                Cancel
+            </a>
+
+            <button
+                type="submit"
+                class="btn btn-primary"
+            >
+                {{ button_text }}
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}

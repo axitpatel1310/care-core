@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}Care Plans | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <span class="eyebrow">
+            CARE MANAGEMENT
+        </span>
+
+        <h2>
+            Care Plans
+        </h2>
+
+        <p>
+            Manage resident care plans and review schedules.
+        </p>
+
+    </div>
+
+
+    {% if perms.care.add_careplan %}
+
+    <a
+        href="{% url 'care_plan_create' %}"
+        class="btn btn-primary"
+    >
+        + Create Care Plan
+    </a>
+
+    {% endif %}
+
+</div>
+
+
+<div class="card">
+
+    <div class="toolbar">
+
+        <form
+            method="GET"
+            class="staff-search-form"
+        >
+
+            <div class="search-box">
+
+                <span>⌕</span>
+
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ query }}"
+                    placeholder="Search resident..."
+                >
+
+            </div>
+
+
+            <select
+                name="status"
+                class="filter-select"
+            >
+
+                <option value="">
+                    All statuses
+                </option>
+
+                <option
+                    value="active"
+                    {% if status == "active" %}selected{% endif %}
+                >
+                    Active
+                </option>
+
+                <option
+                    value="draft"
+                    {% if status == "draft" %}selected{% endif %}
+                >
+                    Draft
+                </option>
+
+                <option
+                    value="archived"
+                    {% if status == "archived" %}selected{% endif %}
+                >
+                    Archived
+                </option>
+
+            </select>
+
+
+            <button
+                type="submit"
+                class="btn btn-secondary"
+            >
+                Search
+            </button>
+
+        </form>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Resident</th>
+                    <th>Responsible Staff</th>
+                    <th>Last Review</th>
+                    <th>Next Review</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th></th>
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for plan in care_plans %}
+
+                <tr>
+
+                    <td>
+
+                        <strong>
+                            {{ plan.resident.first_name }}
+                            {{ plan.resident.last_name }}
+                        </strong>
+
+                    </td>
+
+
+                    <td>
+
+                        {% if plan.responsible_staff %}
+
+                            {{ plan.responsible_staff.user.get_full_name }}
+
+                        {% else %}
+
+                            —
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+                        {{ plan.last_reviewed|date:"d M Y"|default:"—" }}
+                    </td>
+
+
+                    <td>
+                        {{ plan.next_review|date:"d M Y"|default:"—" }}
+                    </td>
+
+
+                    <td>
+
+                        <span class="status-badge active">
+                            {{ plan.get_status_display }}
+                        </span>
+
+                    </td>
+
+
+                    <td>
+                        {{ plan.created_at|date:"d M Y" }}
+                    </td>
+
+
+                    <td>
+
+                        <a
+                            href="{% url 'care_plan_detail' plan.pk %}"
+                            class="table-link"
+                        >
+                            View →
+                        </a>
+
+                    </td>
+
+                </tr>
+
+
+                {% empty %}
+
+                <tr>
+
+                    <td colspan="7">
+
+                        <div class="empty-state large">
+
+                            No care plans found.
+
+                        </div>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

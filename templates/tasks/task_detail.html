@@ -1,0 +1,369 @@
+
+{% extends "base.html" %}
+
+{% block title %}
+{{ task.title }} | CareCore
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <a
+            href="{% url 'task_list' %}"
+            class="back-link"
+        >
+            ← Care Tasks
+        </a>
+
+        <h2>
+            {{ task.title }}
+        </h2>
+
+        <p>
+            {{ task.resident }}
+        </p>
+
+    </div>
+
+
+    <div class="resident-header-actions">
+
+        {% if task.status == "pending" or task.status == "in_progress" %}
+
+            {% if perms.care.change_caretask %}
+
+                {% if task.status == "pending" %}
+
+                <form
+                    method="POST"
+                    action="{% url 'task_start' task.pk %}"
+                    style="display:inline;"
+                >
+
+                    {% csrf_token %}
+
+                    <button
+                        type="submit"
+                        class="btn btn-secondary"
+                    >
+                        Start Task
+                    </button>
+
+                </form>
+
+                {% endif %}
+
+
+                <a
+                    href="{% url 'task_complete' task.pk %}"
+                    class="btn btn-primary"
+                >
+                    Complete Task
+                </a>
+
+                <a
+                    href="{% url 'task_edit' task.pk %}"
+                    class="btn btn-secondary"
+                >
+                    Edit
+                </a>
+
+            {% endif %}
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<!-- TASK SUMMARY -->
+
+<div class="card">
+
+    <div class="resident-summary">
+
+        <div>
+
+            <span>Status</span>
+
+            <strong>
+                <span class="status-badge status-{{ task.status }}">
+                    {{ task.get_status_display }}
+                </span>
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>Priority</span>
+
+            <strong>
+                <span class="priority-badge priority-{{ task.priority }}">
+                    {{ task.get_priority_display }}
+                </span>
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>Task Type</span>
+
+            <strong>
+                {{ task.get_task_type_display }}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>Due Date</span>
+
+            <strong>
+                {{ task.due_date|date:"d M Y" }}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>Due Time</span>
+
+            <strong>
+
+                {% if task.due_time %}
+                    {{ task.due_time|time:"H:i" }}
+                {% else %}
+                    Anytime
+                {% endif %}
+
+            </strong>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- TASK INFORMATION -->
+
+<div class="card">
+
+    <div class="card-header">
+
+        <div>
+
+            <h3>
+                Task Instructions
+            </h3>
+
+        </div>
+
+    </div>
+
+
+    <div class="content-section">
+
+        {% if task.description %}
+
+            {{ task.description|linebreaks }}
+
+        {% else %}
+
+            <span class="text-muted">
+                No instructions provided.
+            </span>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<!-- ASSIGNMENT -->
+
+<div class="card">
+
+    <div class="card-header">
+
+        <h3>
+            Assignment
+        </h3>
+
+    </div>
+
+
+    <div class="resident-summary">
+
+        <div>
+
+            <span>Resident</span>
+
+            <strong>
+                <a
+                    href="{% url 'resident_detail' task.resident.pk %}"
+                >
+                    {{ task.resident }}
+                </a>
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>Assigned Staff</span>
+
+            <strong>
+
+                {% if task.assigned_to %}
+                    {{ task.assigned_to }}
+                {% else %}
+                    <span class="text-muted">
+                        Unassigned
+                    </span>
+                {% endif %}
+
+            </strong>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- COMPLETION INFORMATION -->
+
+{% if task.status == "completed" %}
+
+<div class="card">
+
+    <div class="card-header">
+
+        <h3>
+            Completion
+        </h3>
+
+    </div>
+
+
+    <div class="resident-summary">
+
+        <div>
+
+            <span>Completed By</span>
+
+            <strong>
+                {{ task.completed_by|default:"—" }}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>Completed At</span>
+
+            <strong>
+
+                {% if task.completed_at %}
+                    {{ task.completed_at|date:"d M Y, H:i" }}
+                {% else %}
+                    —
+                {% endif %}
+
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    {% if task.notes %}
+
+    <div class="content-section">
+
+        <span class="section-label">
+            Notes
+        </span>
+
+        {{ task.notes|linebreaks }}
+
+    </div>
+
+    {% endif %}
+
+</div>
+
+{% endif %}
+
+
+<!-- ACTIONS -->
+
+{% if task.status != "completed" and task.status != "cancelled" %}
+
+<div class="card">
+
+    <div class="card-header">
+
+        <h3>
+            Task Actions
+        </h3>
+
+    </div>
+
+
+    <div class="form-actions">
+
+        {% if perms.care.change_caretask %}
+
+        <form
+            method="POST"
+            action="{% url 'task_cancel' task.pk %}"
+        >
+
+            {% csrf_token %}
+
+            <button
+                type="submit"
+                class="btn btn-secondary"
+            >
+                Cancel Task
+            </button>
+
+        </form>
+
+        {% endif %}
+
+
+        {% if perms.care.delete_caretask %}
+
+        <a
+            href="{% url 'task_delete' task.pk %}"
+            class="btn btn-danger"
+        >
+            Delete
+        </a>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endif %}
+
+{% endblock %}
+

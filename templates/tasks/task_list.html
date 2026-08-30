@@ -1,0 +1,326 @@
+  {% extends "base.html" %}
+
+{% block title %}
+Care Tasks | CareCore
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+        <span class="eyebrow">CARE MANAGEMENT</span>
+
+        <h2>Care Tasks</h2>
+
+        <p>
+            Manage, assign, and track resident care tasks.
+        </p>
+    </div>
+
+    {% if perms.care.add_caretask %}
+
+    <a
+        href="{% url 'task_create' %}"
+        class="btn btn-primary"
+    >
+        + Create Task
+    </a>
+
+    {% endif %}
+
+</div>
+
+
+<!-- FILTERS -->
+
+<div class="card">
+
+    <form method="GET" class="filter-form">
+
+        <div class="form-group">
+
+            <label for="status">
+                Status
+            </label>
+
+            <select id="status" name="status">
+
+                <option value="">
+                    All statuses
+                </option>
+
+                {% for value, label in status_choices %}
+
+                <option
+                    value="{{ value }}"
+                    {% if status == value %}selected{% endif %}
+                >
+                    {{ label }}
+                </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label for="priority">
+                Priority
+            </label>
+
+            <select id="priority" name="priority">
+
+                <option value="">
+                    All priorities
+                </option>
+
+                {% for value, label in priority_choices %}
+
+                <option
+                    value="{{ value }}"
+                    {% if priority == value %}selected{% endif %}
+                >
+                    {{ label }}
+                </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label for="task_type">
+                Task Type
+            </label>
+
+            <select id="task_type" name="task_type">
+
+                <option value="">
+                    All task types
+                </option>
+
+                {% for value, label in task_type_choices %}
+
+                <option
+                    value="{{ value }}"
+                    {% if task_type == value %}selected{% endif %}
+                >
+                    {{ label }}
+                </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+        <div class="form-actions">
+
+            <button
+                type="submit"
+                class="btn btn-secondary"
+            >
+                Filter
+            </button>
+
+            <a
+                href="{% url 'task_list' %}"
+                class="btn btn-secondary"
+            >
+                Clear
+            </a>
+
+        </div>
+
+    </form>
+
+</div>
+
+
+<!-- TASK TABLE -->
+
+<div class="card">
+
+    <div class="card-header">
+
+        <div>
+            <h3>Tasks</h3>
+
+            <span class="card-subtitle">
+                {{ tasks|length }}
+                task{{ tasks|length|pluralize }}
+            </span>
+        </div>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>Task</th>
+                    <th>Resident</th>
+                    <th>Assigned To</th>
+                    <th>Due</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for task in tasks %}
+
+                <tr>
+
+                    <td>
+
+                        <a
+                            href="{% url 'task_detail' task.pk %}"
+                        >
+                            <strong>
+                                {{ task.title }}
+                            </strong>
+                        </a>
+
+                        <div class="table-secondary">
+                            {{ task.get_task_type_display }}
+                        </div>
+
+                    </td>
+
+
+                    <td>
+
+                        <a
+                            href="{% url 'resident_detail' task.resident.pk %}"
+                        >
+                            {{ task.resident }}
+                        </a>
+
+                    </td>
+
+
+                    <td>
+
+                        {% if task.assigned_to %}
+                            {{ task.assigned_to }}
+                        {% else %}
+                            <span class="text-muted">
+                                Unassigned
+                            </span>
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+
+                        {{ task.due_date|date:"d M Y" }}
+
+                        {% if task.due_time %}
+                            <div class="table-secondary">
+                                {{ task.due_time|time:"H:i" }}
+                            </div>
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+
+                        <span class="priority-badge priority-{{ task.priority }}">
+                            {{ task.get_priority_display }}
+                        </span>
+
+                    </td>
+
+
+                    <td>
+
+                        <span class="status-badge status-{{ task.status }}">
+                            {{ task.get_status_display }}
+                        </span>
+
+                    </td>
+
+
+                    <td>
+
+                        <div class="table-actions">
+
+                            <a
+                                href="{% url 'task_detail' task.pk %}"
+                                class="table-link"
+                            >
+                                View
+                            </a>
+
+                            {% if perms.care.change_caretask %}
+
+                            <a
+                                href="{% url 'task_edit' task.pk %}"
+                                class="table-link"
+                            >
+                                Edit
+                            </a>
+
+                            {% endif %}
+
+                        </div>
+
+                    </td>
+
+                </tr>
+
+
+                {% empty %}
+
+                <tr>
+
+                    <td colspan="7">
+
+                        <div class="empty-state">
+
+                            <strong>
+                                No care tasks found
+                            </strong>
+
+                            <p>
+                                There are no tasks matching the selected filters.
+                            </p>
+
+                        </div>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

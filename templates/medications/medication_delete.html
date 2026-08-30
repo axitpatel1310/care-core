@@ -1,0 +1,89 @@
+
+{% extends "base.html" %}
+
+{% block title %}
+Delete Medication | CareCore
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <a
+            href="{% url 'medication_detail' medication.pk %}"
+            class="back-link"
+        >
+            ← {{ medication.name }}
+        </a>
+
+        <h2>
+            Delete Medication
+        </h2>
+
+    </div>
+
+</div>
+
+
+<div class="card form-card">
+
+    <div class="danger-box">
+
+        <h3>
+            Are you sure?
+        </h3>
+
+        <p>
+
+            You are about to permanently delete:
+
+            <strong>
+                {{ medication.name }}
+            </strong>
+
+            for
+
+            <strong>
+                {{ medication.resident }}
+            </strong>.
+
+        </p>
+
+        <p>
+            This will also delete its medication administration records.
+        </p>
+
+    </div>
+
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+
+        <div class="form-actions">
+
+            <a
+                href="{% url 'medication_detail' medication.pk %}"
+                class="btn btn-secondary"
+            >
+                Cancel
+            </a>
+
+
+            <button
+                type="submit"
+                class="btn btn-danger"
+            >
+                Delete Medication
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}

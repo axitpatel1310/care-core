@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Delete Assignment | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <h2>
+            Delete Staff Assignment
+        </h2>
+
+        <p>
+            This action cannot be undone.
+        </p>
+
+    </div>
+
+</div>
+
+
+<div class="card delete-card">
+
+    <h3>
+        Delete this assignment?
+    </h3>
+
+    <p>
+
+        This will remove the assignment between
+
+        <strong>
+            {{ assignment.staff.user.get_full_name }}
+        </strong>
+
+        and
+
+        <strong>
+            {{ assignment.resident }}
+        </strong>.
+
+    </p>
+
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+        <div class="form-actions">
+
+            <a
+                href="{% url 'assignment_detail' assignment.pk %}"
+                class="btn btn-secondary"
+            >
+                Cancel
+            </a>
+
+            <button
+                type="submit"
+                class="btn btn-danger"
+            >
+                Delete Assignment
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}

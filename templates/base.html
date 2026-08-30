@@ -1,0 +1,228 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{% block title %}CareCore{% endblock %}</title>
+
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- SIDEBAR -->
+
+<aside class="sidebar">
+
+    <div class="brand">
+        <div class="brand-icon">C</div>
+
+        <div class="brand-text">
+            <h1>CareCore</h1>
+            <span>Facility Management</span>
+        </div>
+    </div>
+
+
+    <nav class="sidebar-nav">
+
+        <div class="nav-section">
+            <span class="nav-label">Overview</span>
+
+            <a href="{% url 'dashboard' %}" class="nav-item">
+                Dashboard
+            </a>
+        </div>
+
+
+        <div class="nav-section">
+            <span class="nav-label">Resident Care</span>
+
+            <a href="{% url 'resident_list' %}" class="nav-item">
+                Residents
+            </a>
+
+            {% if perms.care.view_careplan %}
+            <a href="{% url 'care_plan_list' %}" class="nav-item">
+                Care Plans
+            </a>
+            {% endif %}
+
+            {% if perms.care.view_assessment %}
+            <a href="{% url 'assessment_list' %}" class="nav-item">
+                Assessments
+            </a>
+            {% endif %}
+
+            {% if perms.care.view_cognitivebehaviouralsupport %}
+            <a href="{% url 'behavioural_support_list' %}" class="nav-item">
+                Behavioural Support
+            </a>
+            {% endif %}
+
+            <a href="{% url 'medication_list' %}" class="nav-item">
+                Medications
+            </a>
+
+            <a href="{% url 'incident_list' %}" class="nav-item">
+                Incidents
+            </a>
+        </div>
+
+
+        <div class="nav-section">
+            <span class="nav-label">People & Facility</span>
+
+            {% if perms.staff.view_staffmember %}
+            <a href="{% url 'staff_list' %}" class="nav-item">
+                Staff
+            </a>
+            {% endif %}
+
+            <a href="{% url 'staff_workspace' %}" class="nav-item">
+                Staff Workspace
+            </a>
+
+            {% if perms.facility.view_facility %}
+            <a href="{% url 'facility_list' %}" class="nav-item">
+                Facilities
+            </a>
+            {% endif %}
+        </div>
+
+
+        <div class="nav-section">
+            <span class="nav-label">Compliance</span>
+
+            <a href="#" class="nav-item">
+                Risks
+            </a>
+
+            <a href="{% url 'compliance_dashboard' %}" class="nav-item">
+                Compliance
+            </a>
+
+            <a href="#" class="nav-item">
+                Audits
+            </a>
+
+            <a href="#" class="nav-item">
+                Actions
+            </a>
+        </div>
+
+
+        <div class="nav-section">
+            <span class="nav-label">Operations</span>
+
+            <a href="#" class="nav-item">
+                Calendar
+            </a>
+
+            <a href="#" class="nav-item">
+                Reports
+            </a>
+        </div>
+
+    </nav>
+
+
+    <div class="sidebar-bottom">
+
+        <a href="#" class="nav-item settings-link">
+            Settings
+        </a>
+
+        {% if user.is_authenticated %}
+
+        <div class="user-mini">
+
+            <div class="avatar">
+                {{ user.first_name|first|default:user.username|first|upper }}
+            </div>
+
+            <div class="user-mini-info">
+
+                <strong>
+                    {{ user.get_full_name|default:user.username }}
+                </strong>
+
+                <span>
+                    {{ user.get_role_display|default:"Staff" }}
+                </span>
+
+            </div>
+
+        </div>
+
+        <a href="{% url 'logout' %}" class="nav-item logout-link">
+            Sign out
+        </a>
+
+        {% endif %}
+
+    </div>
+
+</aside>
+
+
+    <!-- MAIN -->
+    <main class="main-content">
+
+        <header class="topbar">
+
+            <div>
+                <button class="mobile-menu" onclick="toggleSidebar()">
+                    ☰
+                </button>
+
+                <span class="breadcrumb">
+                    CareCore
+                </span>
+            </div>
+
+
+            <div class="topbar-right">
+
+                <button class="notification-button">
+                    ♢
+                    <span class="notification-dot"></span>
+                </button>
+
+                <div class="topbar-date">
+                    {{ today|date:"d M Y" }}
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <section class="page-content">
+
+            {% block content %}
+            {% endblock %}
+
+        </section>
+
+    </main>
+
+</div>
+
+
+<script src="{% static 'js/app.js' %}"></script>
+
+{% block extra_js %}
+{% endblock %}
+
+</body>
+</html>

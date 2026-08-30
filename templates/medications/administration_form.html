@@ -1,0 +1,203 @@
+```html
+{% extends "base.html" %}
+
+{% block title %}
+Administer Medication | CareCore
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <a
+            href="{% url 'medication_detail' medication.pk %}"
+            class="back-link"
+        >
+            ← {{ medication.name }}
+        </a>
+
+        <span class="eyebrow">
+            MEDICATION ADMINISTRATION
+        </span>
+
+        <h2>
+            Record Medication
+        </h2>
+
+        <p>
+            Record the administration of {{ medication.name }}
+            for {{ medication.resident }}.
+        </p>
+
+    </div>
+
+</div>
+
+
+<!-- MEDICATION INFORMATION -->
+
+<div class="card">
+
+    <div class="card-header">
+
+        <h3>
+            Medication
+        </h3>
+
+    </div>
+
+
+    <div class="resident-summary">
+
+        <div>
+
+            <span>Resident</span>
+
+            <strong>
+                {{ medication.resident }}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>Medication</span>
+
+            <strong>
+                {{ medication.name }}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>Dose</span>
+
+            <strong>
+                {{ medication.dose }}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>Route</span>
+
+            <strong>
+                {{ medication.route }}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>Frequency</span>
+
+            <strong>
+                {{ medication.frequency }}
+            </strong>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ADMINISTRATION FORM -->
+
+<div class="card form-card">
+
+    <div class="card-header">
+
+        <div>
+
+            <h3>
+                Administration Record
+            </h3>
+
+            <span class="card-subtitle">
+                Record what happened during this medication round.
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+
+        {% if form.non_field_errors %}
+
+        <div class="form-error">
+            {{ form.non_field_errors }}
+        </div>
+
+        {% endif %}
+
+
+        {% for field in form %}
+
+        <div class="form-group">
+
+            {{ field.label_tag }}
+
+            {{ field }}
+
+
+            {% if field.help_text %}
+
+            <small>
+                {{ field.help_text }}
+            </small>
+
+            {% endif %}
+
+
+            {% for error in field.errors %}
+
+            <div class="field-error">
+                {{ error }}
+            </div>
+
+            {% endfor %}
+
+        </div>
+
+        {% endfor %}
+
+
+        <div class="form-actions">
+
+            <a
+                href="{% url 'medication_detail' medication.pk %}"
+                class="btn btn-secondary"
+            >
+                Cancel
+            </a>
+
+
+            <button
+                type="submit"
+                class="btn btn-primary"
+            >
+                Record Administration
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}
+```

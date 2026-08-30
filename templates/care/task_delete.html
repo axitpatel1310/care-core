@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Delete Task | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <h2>
+            Delete Care Task
+        </h2>
+
+        <p>
+            This action cannot be undone.
+        </p>
+
+    </div>
+
+</div>
+
+
+<div class="card delete-card">
+
+    <h3>
+        Delete this task?
+    </h3>
+
+    <p>
+
+        You are about to delete
+
+        <strong>
+            {{ task.title }}
+        </strong>
+
+        for
+
+        <strong>
+            {{ task.resident }}
+        </strong>.
+
+    </p>
+
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+        <div class="form-actions">
+
+            <a
+                href="{% url 'task_detail' task.pk %}"
+                class="btn btn-secondary"
+            >
+                Cancel
+            </a>
+
+            <button
+                type="submit"
+                class="btn btn-danger"
+            >
+                Delete Task
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,310 @@
+
+{% extends "base.html" %}
+
+{% block title %}
+Medications | CareCore
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+        <span class="eyebrow">
+            MEDICATIONS
+        </span>
+
+        <h2>
+            Medications
+        </h2>
+
+        <p>
+            Manage resident medications and administration records.
+        </p>
+    </div>
+
+
+    {% if perms.medications.add_medication %}
+
+    <a
+        href="{% url 'medication_create' %}"
+        class="btn btn-primary"
+    >
+        + Add Medication
+    </a>
+
+    {% endif %}
+
+</div>
+
+
+<!-- FILTERS -->
+
+<div class="card">
+
+    <form
+        method="GET"
+        class="filter-form"
+    >
+
+        <div class="form-group">
+
+            <label for="search">
+                Search
+            </label>
+
+            <input
+                id="search"
+                type="text"
+                name="q"
+                value="{{ query }}"
+                placeholder="Search medication..."
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label for="status">
+                Status
+            </label>
+
+            <select
+                id="status"
+                name="status"
+            >
+
+                <option value="">
+                    All statuses
+                </option>
+
+                {% for value, label in status_choices %}
+
+                <option
+                    value="{{ value }}"
+                    {% if status == value %}selected{% endif %}
+                >
+                    {{ label }}
+                </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+        <div class="form-actions">
+
+            <button
+                type="submit"
+                class="btn btn-secondary"
+            >
+                Filter
+            </button>
+
+            <a
+                href="{% url 'medication_list' %}"
+                class="btn btn-secondary"
+            >
+                Clear
+            </a>
+
+        </div>
+
+    </form>
+
+</div>
+
+
+<!-- MEDICATIONS -->
+
+<div class="card">
+
+    <div class="card-header">
+
+        <div>
+
+            <h3>
+                Medication Records
+            </h3>
+
+            <span class="card-subtitle">
+                {{ medications|length }} medication{{ medications|length|pluralize }}
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        Medication
+                    </th>
+
+                    <th>
+                        Resident
+                    </th>
+
+                    <th>
+                        Dose
+                    </th>
+
+                    <th>
+                        Route
+                    </th>
+
+                    <th>
+                        Frequency
+                    </th>
+
+                    <th>
+                        Status
+                    </th>
+
+                    <th>
+                        Actions
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for medication in medications %}
+
+                <tr>
+
+                    <td>
+
+                        <a
+                            href="{% url 'medication_detail' medication.pk %}"
+                        >
+                            <strong>
+                                {{ medication.name }}
+                            </strong>
+                        </a>
+
+                    </td>
+
+
+                    <td>
+
+                        <a
+                            href="{% url 'resident_detail' medication.resident.pk %}"
+                        >
+                            {{ medication.resident }}
+                        </a>
+
+                    </td>
+
+
+                    <td>
+                        {{ medication.dose }}
+                    </td>
+
+
+                    <td>
+                        {{ medication.route }}
+                    </td>
+
+
+                    <td>
+                        {{ medication.frequency }}
+                    </td>
+
+
+                    <td>
+
+                        <span class="status-badge status-{{ medication.status }}">
+                            {{ medication.get_status_display }}
+                        </span>
+
+                    </td>
+
+
+                    <td>
+
+                        <div class="table-actions">
+
+                            <a
+                                href="{% url 'medication_detail' medication.pk %}"
+                                class="table-link"
+                            >
+                                View
+                            </a>
+
+                            {% if perms.medications.change_medication %}
+
+                            <a
+                                href="{% url 'medication_edit' medication.pk %}"
+                                class="table-link"
+                            >
+                                Edit
+                            </a>
+
+                            {% endif %}
+
+                        </div>
+
+                    </td>
+
+                </tr>
+
+
+                {% empty %}
+
+                <tr>
+
+                    <td colspan="7">
+
+                        <div class="empty-state">
+
+                            <strong>
+                                No medications found
+                            </strong>
+
+                            <p>
+                                There are no medications matching your search.
+                            </p>
+
+                            {% if perms.medications.add_medication %}
+
+                            <a
+                                href="{% url 'medication_create' %}"
+                                class="btn btn-primary"
+                            >
+                                Add Medication
+                            </a>
+
+                            {% endif %}
+
+                        </div>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}
+

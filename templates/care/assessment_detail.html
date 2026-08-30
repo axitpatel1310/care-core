@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Assessment | CareCore
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <a
+            href="{% url 'assessment_list' %}"
+            class="back-link"
+        >
+            ← Assessments
+        </a>
+
+        <h2>
+            {{ assessment.get_assessment_type_display }}
+        </h2>
+
+        <p>
+
+            {{ assessment.resident.first_name }}
+            {{ assessment.resident.last_name }}
+
+        </p>
+
+    </div>
+
+
+    <div class="detail-actions">
+
+        {% if perms.care.change_assessment %}
+
+        <a
+            href="{% url 'assessment_edit' assessment.pk %}"
+            class="btn btn-secondary"
+        >
+            Edit
+        </a>
+
+        {% endif %}
+
+
+        {% if perms.care.delete_assessment %}
+
+        <a
+            href="{% url 'assessment_delete' assessment.pk %}"
+            class="btn btn-danger"
+        >
+            Delete
+        </a>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<div class="profile-grid">
+
+
+    <div class="card">
+
+        <div class="card-header">
+
+            <div>
+
+                <h3>
+                    Assessment Information
+                </h3>
+
+            </div>
+
+        </div>
+
+
+        <div class="info-grid">
+
+            <div>
+
+                <span>
+                    Resident
+                </span>
+
+                <strong>
+
+                    {{ assessment.resident.first_name }}
+                    {{ assessment.resident.last_name }}
+
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Assessment Type
+                </span>
+
+                <strong>
+                    {{ assessment.get_assessment_type_display }}
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Assessment Date
+                </span>
+
+                <strong>
+                    {{ assessment.assessment_date|date:"d M Y" }}
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Performed By
+                </span>
+
+                <strong>
+
+                    {% if assessment.performed_by %}
+
+                        {{ assessment.performed_by.user.get_full_name }}
+
+                    {% else %}
+
+                        —
+
+                    {% endif %}
+
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Next Review
+                </span>
+
+                <strong>
+                    {{ assessment.next_review|date:"d M Y"|default:"—" }}
+                </strong>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="card">
+
+        <div class="card-header">
+
+            <div>
+
+                <h3>
+                    Result
+                </h3>
+
+            </div>
+
+        </div>
+
+
+        <div class="text-content">
+
+            {% if assessment.result %}
+
+                {{ assessment.result|linebreaks }}
+
+            {% else %}
+
+                <span class="text-muted">
+                    No assessment result recorded.
+                </span>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <div class="card">
+
+        <div class="card-header">
+
+            <div>
+
+                <h3>
+                    Notes
+                </h3>
+
+            </div>
+
+        </div>
+
+
+        <div class="text-content">
+
+            {% if assessment.notes %}
+
+                {{ assessment.notes|linebreaks }}
+
+            {% else %}
+
+                <span class="text-muted">
+                    No additional notes.
+                </span>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

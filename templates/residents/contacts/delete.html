@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Delete Contact | CareCore
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <a
+            href="{% url 'resident_detail' resident.pk %}"
+            class="back-link"
+        >
+            ← {{ resident.first_name }}
+            {{ resident.last_name }}
+        </a>
+
+        <h2>
+            Delete Contact
+        </h2>
+
+        <p>
+            This action cannot be undone.
+        </p>
+
+    </div>
+
+</div>
+
+
+<div class="card delete-card">
+
+    <div class="delete-icon">
+        !
+    </div>
+
+
+    <h3>
+        Delete {{ contact.name }}?
+    </h3>
+
+
+    <p>
+
+        This will remove
+
+        <strong>
+            {{ contact.name }}
+        </strong>
+
+        from the contacts for
+
+        <strong>
+            {{ resident.first_name }}
+            {{ resident.last_name }}
+        </strong>.
+
+    </p>
+
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+        <div class="form-actions">
+
+            <a
+                href="{% url 'resident_detail' resident.pk %}"
+                class="btn btn-secondary"
+            >
+                Cancel
+            </a>
+
+            <button
+                type="submit"
+                class="btn btn-danger"
+            >
+                Delete Contact
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}

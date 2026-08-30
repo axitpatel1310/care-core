@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Facilities | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+        <span class="eyebrow">FACILITY MANAGEMENT</span>
+
+        <h2>Facilities</h2>
+
+        <p>
+            Manage facilities, wards and rooms.
+        </p>
+    </div>
+
+    {% if perms.facility.add_facility %}
+        <a
+            href="{% url 'facility_create' %}"
+            class="btn btn-primary"
+        >
+            + Add Facility
+        </a>
+    {% endif %}
+
+</div>
+
+
+<div class="card">
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Facility</th>
+                    <th>Manager</th>
+                    <th>Rooms</th>
+                    <th>Occupancy</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for facility in facilities %}
+
+                <tr>
+
+                    <td>
+                        <strong>
+                            {{ facility.name }}
+                        </strong>
+
+                        <span class="table-secondary">
+                            {{ facility.address }}
+                        </span>
+                    </td>
+
+                    <td>
+                        {% if facility.manager %}
+                            {{ facility.manager.get_full_name }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {{ facility.number_of_rooms }}
+                    </td>
+
+                    <td>
+                        {{ facility.occupancy }}
+                    </td>
+
+                    <td>
+                        <span class="status-badge active">
+                            {{ facility.get_status_display }}
+                        </span>
+                    </td>
+
+                    <td>
+                        <a
+                            href="{% url 'facility_detail' facility.pk %}"
+                            class="table-link"
+                        >
+                            View →
+                        </a>
+                    </td>
+
+                </tr>
+
+                {% empty %}
+
+                <tr>
+                    <td colspan="6">
+
+                        <div class="empty-state large">
+                            No facilities have been created yet.
+                        </div>
+
+                    </td>
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

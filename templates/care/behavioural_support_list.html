@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Behavioural Support | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <span class="eyebrow">
+            CARE MANAGEMENT
+        </span>
+
+        <h2>
+            Cognitive & Behavioural Support
+        </h2>
+
+        <p>
+            Manage resident cognitive and behavioural support requirements.
+        </p>
+
+    </div>
+
+
+    {% if perms.care.add_cognitivebehaviouralsupport %}
+
+    <a
+        href="{% url 'behavioural_support_create' %}"
+        class="btn btn-primary"
+    >
+        + Add Support Record
+    </a>
+
+    {% endif %}
+
+</div>
+
+
+<div class="card">
+
+    <div class="toolbar">
+
+        <form method="GET">
+
+            <div class="search-box">
+
+                <span>⌕</span>
+
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ query }}"
+                    placeholder="Search resident..."
+                >
+
+            </div>
+
+        </form>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Resident</th>
+                    <th>Triggers</th>
+                    <th>Communication</th>
+                    <th>Care Instructions</th>
+                    <th></th>
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for support in supports %}
+
+                <tr>
+
+                    <td>
+
+                        <strong>
+
+                            {{ support.resident.first_name }}
+                            {{ support.resident.last_name }}
+
+                        </strong>
+
+                    </td>
+
+
+                    <td>
+
+                        {% if support.known_triggers %}
+
+                            {{ support.known_triggers|truncatechars:60 }}
+
+                        {% else %}
+
+                            —
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+
+                        {% if support.communication_preferences %}
+
+                            {{ support.communication_preferences|truncatechars:60 }}
+
+                        {% else %}
+
+                            —
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+
+                        {% if support.care_instructions %}
+
+                            {{ support.care_instructions|truncatechars:60 }}
+
+                        {% else %}
+
+                            —
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+
+                        <a
+                            href="{% url 'behavioural_support_detail' support.pk %}"
+                            class="table-link"
+                        >
+                            View →
+                        </a>
+
+                    </td>
+
+                </tr>
+
+
+                {% empty %}
+
+                <tr>
+
+                    <td colspan="5">
+
+                        <div class="empty-state large">
+                            No behavioural support records found.
+                        </div>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

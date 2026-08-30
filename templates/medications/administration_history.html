@@ -1,0 +1,250 @@
+
+{% extends "base.html" %}
+
+{% block title %}
+Medication Administration History | CareCore
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <span class="eyebrow">
+            MEDICATIONS
+        </span>
+
+        <h2>
+            Administration History
+        </h2>
+
+        <p>
+            Medication administration records across residents.
+        </p>
+
+    </div>
+
+</div>
+
+
+<!-- FILTERS -->
+
+<div class="card">
+
+    <form method="GET" class="filter-form">
+
+        <div class="form-group">
+
+            <label for="status">
+                Status
+            </label>
+
+            <select
+                id="status"
+                name="status"
+            >
+
+                <option value="">
+                    All statuses
+                </option>
+
+                {% for value, label in status_choices %}
+
+                <option
+                    value="{{ value }}"
+                    {% if status == value %}selected{% endif %}
+                >
+                    {{ label }}
+                </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+        <div class="form-actions">
+
+            <button
+                type="submit"
+                class="btn btn-secondary"
+            >
+                Filter
+            </button>
+
+
+            <a
+                href="{% url 'medication_administration_history' %}"
+                class="btn btn-secondary"
+            >
+                Clear
+            </a>
+
+        </div>
+
+    </form>
+
+</div>
+
+
+<!-- HISTORY -->
+
+<div class="card">
+
+    <div class="card-header">
+
+        <div>
+
+            <h3>
+                MAR Records
+            </h3>
+
+            <span class="card-subtitle">
+                {{ administrations|length }}
+                record{{ administrations|length|pluralize }}
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>Date / Time</th>
+                    <th>Resident</th>
+                    <th>Medication</th>
+                    <th>Dose</th>
+                    <th>Status</th>
+                    <th>Administered By</th>
+                    <th>Notes</th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for administration in administrations %}
+
+                <tr>
+
+                    <td>
+
+                        <strong>
+                            {{ administration.administered_at|date:"d M Y" }}
+                        </strong>
+
+                        <div class="table-secondary">
+                            {{ administration.administered_at|date:"H:i" }}
+                        </div>
+
+                    </td>
+
+
+                    <td>
+
+                        <a
+                            href="{% url 'resident_detail' administration.medication.resident.pk %}"
+                        >
+                            {{ administration.medication.resident }}
+                        </a>
+
+                    </td>
+
+
+                    <td>
+
+                        <a
+                            href="{% url 'medication_detail' administration.medication.pk %}"
+                        >
+                            {{ administration.medication.name }}
+                        </a>
+
+                    </td>
+
+
+                    <td>
+                        {{ administration.medication.dose }}
+                    </td>
+
+
+                    <td>
+
+                        <span class="status-badge status-{{ administration.status }}">
+                            {{ administration.get_status_display }}
+                        </span>
+
+                    </td>
+
+
+                    <td>
+
+                        {% if administration.administered_by %}
+                            {{ administration.administered_by }}
+                        {% else %}
+                            <span class="text-muted">
+                                Unknown
+                            </span>
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+
+                        {% if administration.notes %}
+                            {{ administration.notes }}
+                        {% else %}
+                            <span class="text-muted">
+                                —
+                            </span>
+                        {% endif %}
+
+                    </td>
+
+                </tr>
+
+
+                {% empty %}
+
+                <tr>
+
+                    <td colspan="7">
+
+                        <div class="empty-state">
+
+                            <strong>
+                                No administration records
+                            </strong>
+
+                            <p>
+                                No medication administrations match your filters.
+                            </p>
+
+                        </div>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

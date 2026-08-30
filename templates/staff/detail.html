@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {{ staff_member.user.get_full_name }} | CareCore
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <a
+            href="{% url 'staff_list' %}"
+            class="back-link"
+        >
+            ← Staff
+        </a>
+
+
+        <div class="resident-heading">
+
+            <div class="avatar avatar-large">
+
+                {{ staff_member.user.first_name|first }}
+                {{ staff_member.user.last_name|first }}
+
+            </div>
+
+
+            <div>
+
+                <h2>
+                    {{ staff_member.user.get_full_name }}
+                </h2>
+
+                <p>
+                    {{ staff_member.user.get_role_display }}
+                    · {{ staff_member.employee_id }}
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="detail-actions">
+
+        {% if perms.staff.change_staffmember %}
+
+        <a
+            href="{% url 'staff_edit' staff_member.pk %}"
+            class="btn btn-secondary"
+        >
+            Edit
+        </a>
+
+        {% endif %}
+
+
+        {% if perms.staff.delete_staffmember %}
+
+        <a
+            href="{% url 'staff_delete' staff_member.pk %}"
+            class="btn btn-danger"
+        >
+            Delete
+        </a>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<div class="profile-grid">
+
+
+    <!-- BASIC INFORMATION -->
+
+    <div class="card">
+
+        <div class="card-header">
+
+            <div>
+
+                <h3>Staff Information</h3>
+
+                <p>
+                    Employee and contact details
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="info-grid">
+
+            <div>
+
+                <span>
+                    Employee ID
+                </span>
+
+                <strong>
+                    {{ staff_member.employee_id }}
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Role
+                </span>
+
+                <strong>
+                    {{ staff_member.user.get_role_display }}
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Email
+                </span>
+
+                <strong>
+                    {{ staff_member.user.email }}
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Phone
+                </span>
+
+                <strong>
+                    {{ staff_member.phone|default:"—" }}
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Start Date
+                </span>
+
+                <strong>
+                    {{ staff_member.start_date|date:"d M Y" }}
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Employment Status
+                </span>
+
+                <strong>
+                    {{ staff_member.get_employment_status_display }}
+                </strong>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ASSIGNMENT -->
+
+    <div class="card">
+
+        <div class="card-header">
+
+            <div>
+
+                <h3>Assignment</h3>
+
+                <p>
+                    Current facility placement
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="info-grid">
+
+            <div>
+
+                <span>
+                    Facility
+                </span>
+
+                <strong>
+                    {{ staff_member.facility.name|default:"—" }}
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Ward
+                </span>
+
+                <strong>
+                    {{ staff_member.ward.name|default:"—" }}
+                </strong>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- QUALIFICATIONS -->
+
+    <div class="card">
+
+        <div class="card-header">
+
+            <div>
+
+                <h3>Qualifications</h3>
+
+                <p>
+                    Professional credentials
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="text-content">
+
+            {% if staff_member.qualifications %}
+
+                {{ staff_member.qualifications|linebreaks }}
+
+            {% else %}
+
+                <span class="text-muted">
+                    No qualifications have been recorded.
+                </span>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <!-- ACCOUNT -->
+
+    <div class="card">
+
+        <div class="card-header">
+
+            <div>
+
+                <h3>Account</h3>
+
+                <p>
+                    CareCore system account
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="info-grid">
+
+            <div>
+
+                <span>
+                    Username
+                </span>
+
+                <strong>
+                    {{ staff_member.user.username }}
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Email Verified
+                </span>
+
+                <strong>
+                    {% if staff_member.user.email_verified %}
+                        Yes
+                    {% else %}
+                        No
+                    {% endif %}
+                </strong>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

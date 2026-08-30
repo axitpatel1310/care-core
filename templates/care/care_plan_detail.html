@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Care Plan | CareCore
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <a
+            href="{% url 'care_plan_list' %}"
+            class="back-link"
+        >
+            ← Care Plans
+        </a>
+
+        <h2>
+            Care Plan
+        </h2>
+
+        <p>
+
+            {{ care_plan.resident.first_name }}
+            {{ care_plan.resident.last_name }}
+
+        </p>
+
+    </div>
+
+
+    <div class="detail-actions">
+
+        {% if perms.care.change_careplan %}
+
+        <a
+            href="{% url 'care_plan_edit' care_plan.pk %}"
+            class="btn btn-secondary"
+        >
+            Edit
+        </a>
+
+        {% endif %}
+
+
+        {% if perms.care.delete_careplan %}
+
+        <a
+            href="{% url 'care_plan_delete' care_plan.pk %}"
+            class="btn btn-danger"
+        >
+            Delete
+        </a>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<div class="profile-grid">
+
+
+    <!-- RESIDENT -->
+
+    <div class="card">
+
+        <div class="card-header">
+
+            <div>
+
+                <h3>
+                    Resident
+                </h3>
+
+                <p>
+                    Care plan subject
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="info-grid">
+
+            <div>
+
+                <span>
+                    Name
+                </span>
+
+                <strong>
+                    {{ care_plan.resident.first_name }}
+                    {{ care_plan.resident.last_name }}
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Care Level
+                </span>
+
+                <strong>
+                    {{ care_plan.resident.get_care_level_display }}
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Room
+                </span>
+
+                <strong>
+
+                    {% if care_plan.resident.room %}
+
+                        {{ care_plan.resident.room.room_number }}
+
+                    {% else %}
+
+                        —
+
+                    {% endif %}
+
+                </strong>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- PLAN STATUS -->
+
+    <div class="card">
+
+        <div class="card-header">
+
+            <div>
+
+                <h3>
+                    Plan Status
+                </h3>
+
+                <p>
+                    Review information
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="info-grid">
+
+            <div>
+
+                <span>
+                    Status
+                </span>
+
+                <strong>
+                    {{ care_plan.get_status_display }}
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Responsible Staff
+                </span>
+
+                <strong>
+
+                    {% if care_plan.responsible_staff %}
+
+                        {{ care_plan.responsible_staff.user.get_full_name }}
+
+                    {% else %}
+
+                        Unassigned
+
+                    {% endif %}
+
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Last Reviewed
+                </span>
+
+                <strong>
+                    {{ care_plan.last_reviewed|date:"d M Y"|default:"—" }}
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Next Review
+                </span>
+
+                <strong>
+                    {{ care_plan.next_review|date:"d M Y"|default:"—" }}
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Created By
+                </span>
+
+                <strong>
+
+                    {% if care_plan.created_by %}
+
+                        {{ care_plan.created_by.get_full_name }}
+
+                    {% else %}
+
+                        —
+
+                    {% endif %}
+
+                </strong>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- CARE REQUIREMENTS -->
+
+    <div class="card">
+
+        <div class="card-header">
+
+            <div>
+
+                <h3>
+                    Care Requirements
+                </h3>
+
+                <p>
+                    Resident-specific care instructions
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="care-detail-grid">
+
+
+            <div class="care-detail-item">
+
+                <span>
+                    Mobility
+                </span>
+
+                <p>
+                    {{ care_plan.mobility|default:"No information recorded."|linebreaksbr }}
+                </p>
+
+            </div>
+
+
+            <div class="care-detail-item">
+
+                <span>
+                    Nutrition
+                </span>
+
+                <p>
+                    {{ care_plan.nutrition|default:"No information recorded."|linebreaksbr }}
+                </p>
+
+            </div>
+
+
+            <div class="care-detail-item">
+
+                <span>
+                    Personal Care
+                </span>
+
+                <p>
+                    {{ care_plan.personal_care|default:"No information recorded."|linebreaksbr }}
+                </p>
+
+            </div>
+
+
+            <div class="care-detail-item">
+
+                <span>
+                    Communication
+                </span>
+
+                <p>
+                    {{ care_plan.communication|default:"No information recorded."|linebreaksbr }}
+                </p>
+
+            </div>
+
+
+            <div class="care-detail-item">
+
+                <span>
+                    Cognitive Support
+                </span>
+
+                <p>
+                    {{ care_plan.cognitive_support|default:"No information recorded."|linebreaksbr }}
+                </p>
+
+            </div>
+
+
+            <div class="care-detail-item">
+
+                <span>
+                    Behavioural Support
+                </span>
+
+                <p>
+                    {{ care_plan.behavioural_support|default:"No information recorded."|linebreaksbr }}
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- NOTES -->
+
+    <div class="card">
+
+        <div class="card-header">
+
+            <div>
+
+                <h3>
+                    Notes
+                </h3>
+
+            </div>
+
+        </div>
+
+
+        <div class="text-content">
+
+            {% if care_plan.notes %}
+
+                {{ care_plan.notes|linebreaks }}
+
+            {% else %}
+
+                <span class="text-muted">
+                    No additional notes.
+                </span>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

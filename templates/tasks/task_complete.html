@@ -1,0 +1,104 @@
+
+{% extends "base.html" %}
+
+{% block title %}
+Complete Task | CareCore
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <a
+            href="{% url 'task_detail' task.pk %}"
+            class="back-link"
+        >
+            ← {{ task.title }}
+        </a>
+
+        <h2>
+            Complete Care Task
+        </h2>
+
+    </div>
+
+</div>
+
+
+<div class="card form-card">
+
+    <div class="task-confirmation">
+
+        <span class="eyebrow">
+            TASK COMPLETION
+        </span>
+
+        <h3>
+            {{ task.title }}
+        </h3>
+
+        <p>
+            Resident:
+            <strong>
+                {{ task.resident }}
+            </strong>
+        </p>
+
+        {% if task.description %}
+
+        <div class="confirmation-description">
+            {{ task.description|linebreaks }}
+        </div>
+
+        {% endif %}
+
+    </div>
+
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+
+        <div class="form-group">
+
+            <label for="notes">
+                Completion Notes
+            </label>
+
+            <textarea
+                id="notes"
+                name="notes"
+                rows="5"
+                placeholder="Add any relevant notes about the completed task..."
+            >{{ task.notes }}</textarea>
+
+        </div>
+
+
+        <div class="form-actions">
+
+            <a
+                href="{% url 'task_detail' task.pk %}"
+                class="btn btn-secondary"
+            >
+                Cancel
+            </a>
+
+
+            <button
+                type="submit"
+                class="btn btn-primary"
+            >
+                ✓ Mark as Completed
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}

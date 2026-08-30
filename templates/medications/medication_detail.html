@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+
+{% block title %}
+{{ medication.name }} | CareCore
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <a
+            href="{% url 'medication_list' %}"
+            class="back-link"
+        >
+            ← Medications
+        </a>
+
+        <h2>
+            {{ medication.name }}
+        </h2>
+
+        <p>
+            {{ medication.resident }}
+        </p>
+
+    </div>
+
+
+    <div class="resident-header-actions">
+
+        {% if perms.medications.add_medicationadministration %}
+
+        <a
+            href="{% url 'administration_create' medication.pk %}"
+            class="btn btn-primary"
+        >
+            Record Administration
+        </a>
+
+        {% endif %}
+
+        {% if perms.medications.change_medication %}
+
+        <a
+            href="{% url 'medication_edit' medication.pk %}"
+            class="btn btn-secondary"
+        >
+            Edit
+        </a>
+
+        {% endif %}
+
+    </div>
+
+</div>
+<div class="card">
+
+    <div class="card-header">
+
+        <div>
+
+            <h3>
+                Administration History
+            </h3>
+
+        </div>
+
+        <a
+    href="{% url 'medication_administration_history' medication.pk %}"
+    class="btn btn-secondary"
+>
+
+            Full MAR
+        </a>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Date / Time</th>
+                    <th>Status</th>
+                    <th>Staff</th>
+                    <th>Notes</th>
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for administration in administrations %}
+
+                <tr>
+
+                    <td>
+                        {{ administration.administered_at|date:"d M Y, H:i" }}
+                    </td>
+
+                    <td>
+
+                        <span class="status-badge status-{{ administration.status }}">
+                            {{ administration.get_status_display }}
+                        </span>
+
+                    </td>
+
+                    <td>
+                        {{ administration.administered_by|default:"—" }}
+                    </td>
+
+                    <td>
+                        {{ administration.notes|default:"—" }}
+                    </td>
+
+                </tr>
+
+
+                {% empty %}
+
+                <tr>
+
+                    <td colspan="4">
+
+                        <div class="empty-state">
+                            No administrations recorded yet.
+                        </div>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+<div class="card">
+
+    <div class="resident-summary">
+
+        <div>
+            <span>Resident</span>
+            <strong>
+                {{ medication.resident }}
+            </strong>
+        </div>
+
+        <div>
+            <span>Dose</span>
+            <strong>
+                {{ medication.dose }}
+            </strong>
+        </div>
+
+        <div>
+            <span>Route</span>
+            <strong>
+                {{ medication.route }}
+            </strong>
+        </div>
+
+        <div>
+            <span>Frequency</span>
+            <strong>
+                {{ medication.frequency }}
+            </strong>
+        </div>
+
+        <div>
+            <span>Status</span>
+            <strong>
+                {{ medication.get_status_display }}
+            </strong>
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="card">
+
+    <div class="card-header">
+
+        <div>
+
+            <h3>
+                Administration History
+            </h3>
+
+            <span class="card-subtitle">
+                Medication Administration Record
+            </span>
+
+        </div>
+
+        <a
+            href="{% url 'administration_history' medication.pk %}"
+            class="table-link"
+        >
+            Full history →
+        </a>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        Date & Time
+                    </th>
+
+                    <th>
+                        Staff
+                    </th>
+
+                    <th>
+                        Status
+                    </th>
+
+                    <th>
+                        Notes
+                    </th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for administration in administrations|slice:":10" %}
+
+                <tr>
+
+                    <td>
+                        {{ administration.administered_at|date:"d M Y, H:i" }}
+                    </td>
+
+                    <td>
+
+                        {% if administration.administered_by %}
+                            {{ administration.administered_by }}
+                        {% else %}
+                            —
+                        {% endif %}
+
+                    </td>
+
+                    <td>
+                        {{ administration.get_status_display }}
+                    </td>
+
+                    <td>
+                        {{ administration.notes|default:"—" }}
+                    </td>
+
+                </tr>
+
+                {% empty %}
+
+                <tr>
+
+                    <td colspan="4">
+                        <div class="empty-state">
+                            No administration records yet.
+                        </div>
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

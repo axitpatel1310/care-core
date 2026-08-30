@@ -1,0 +1,176 @@
+```html
+{% extends "base.html" %}
+
+{% block title %}
+Medications Due Today | CareCore
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <span class="eyebrow">
+            MEDICATIONS
+        </span>
+
+        <h2>
+            Medications
+        </h2>
+
+        <p>
+            Active medications for {{ today|date:"l, d F Y" }}.
+        </p>
+
+    </div>
+
+</div>
+
+
+<div class="card">
+
+    <div class="card-header">
+
+        <div>
+
+            <h3>
+                Active Medications
+            </h3>
+
+            <span class="card-subtitle">
+                {{ medications|length }}
+                medication{{ medications|length|pluralize }}
+            </span>
+
+        </div>
+
+
+        <a
+            href="{% url 'medication_administration_history' %}"
+            class="table-link"
+        >
+            View MAR
+        </a>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Resident</th>
+                    <th>Medication</th>
+                    <th>Dose</th>
+                    <th>Route</th>
+                    <th>Frequency</th>
+                    <th>Prescriber</th>
+                    <th></th>
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for medication in medications %}
+
+                <tr>
+
+                    <td>
+
+                        <a
+                            href="{% url 'resident_detail' medication.resident.pk %}"
+                        >
+                            <strong>
+                                {{ medication.resident }}
+                            </strong>
+                        </a>
+
+                    </td>
+
+
+                    <td>
+                        {{ medication.name }}
+                    </td>
+
+
+                    <td>
+                        {{ medication.dose }}
+                    </td>
+
+
+                    <td>
+                        {{ medication.route }}
+                    </td>
+
+
+                    <td>
+                        {{ medication.frequency }}
+                    </td>
+
+
+                    <td>
+
+                        {% if medication.prescriber %}
+                            {{ medication.prescriber }}
+                        {% else %}
+                            —
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+
+                        <a
+                            href="{% url 'medication_administration_create' medication.pk %}"
+                            class="btn btn-primary btn-small"
+                        >
+                            Administer
+                        </a>
+
+                    </td>
+
+                </tr>
+
+
+                {% empty %}
+
+                <tr>
+
+                    <td colspan="7">
+
+                        <div class="empty-state">
+
+                            <strong>
+                                No active medications
+                            </strong>
+
+                            <p>
+                                There are currently no active medications
+                                available for administration.
+                            </p>
+
+                        </div>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}
+```

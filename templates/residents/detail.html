@@ -1,0 +1,754 @@
+{% extends "base.html" %}
+
+{% block title %}
+{{ resident }} | CareCore
+{% endblock %}
+
+
+{% block content %}
+
+<!-- HEADER -->
+
+<div class="resident-header">
+
+    <div>
+
+        <a
+            href="{% url 'resident_list' %}"
+            class="back-link"
+        >
+            ← Residents
+        </a>
+
+        <div class="resident-title">
+
+            <div class="resident-avatar">
+                {{ resident.first_name|first }}{{ resident.last_name|first }}
+            </div>
+
+            <div>
+
+                <h2>
+                    {{ resident.first_name }}
+                    {{ resident.last_name }}
+                </h2>
+
+                <p>
+                    {% if resident.room %}
+                        Room {{ resident.room }}
+                    {% else %}
+                        No room assigned
+                    {% endif %}
+
+                    ·
+
+                    {{ resident.get_care_level_display }}
+                    care
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="resident-header-actions">
+
+        {% if perms.residents.change_resident %}
+
+        <a
+            href="{% url 'resident_edit' resident.pk %}"
+            class="btn btn-secondary"
+        >
+            Edit Resident
+        </a>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<!-- RESIDENT SUMMARY -->
+
+<div class="resident-summary card">
+
+    <div>
+
+        <span>Date of Birth</span>
+
+        <strong>
+            {{ resident.date_of_birth|date:"d M Y" }}
+        </strong>
+
+    </div>
+
+
+    <div>
+
+        <span>Gender</span>
+
+        <strong>
+            {{ resident.get_gender_display }}
+        </strong>
+
+    </div>
+
+
+    <div>
+
+        <span>Admission Date</span>
+
+        <strong>
+            {{ resident.admission_date|date:"d M Y" }}
+        </strong>
+
+    </div>
+
+
+    <div>
+
+        <span>Status</span>
+
+        <strong>
+            {{ resident.get_status_display }}
+        </strong>
+
+    </div>
+
+
+    <div>
+
+        <span>Care Level</span>
+
+        <strong>
+            {{ resident.get_care_level_display }}
+        </strong>
+
+    </div>
+
+</div>
+
+<!--Care tasks -->
+<div class="card">
+
+    <div class="card-header">
+
+        <div>
+            <h3>Care Tasks</h3>
+
+            <span class="card-subtitle">
+                {{ care_tasks|length }}
+                task{{ care_tasks|length|pluralize }}
+            </span>
+        </div>
+
+        {% if perms.care.add_caretask %}
+
+        <a
+            href="{% url 'task_create' %}?resident={{ resident.pk }}"
+            class="btn btn-primary"
+        >
+            + Add Task
+        </a>
+
+        {% endif %}
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Task</th>
+                    <th>Assigned To</th>
+                    <th>Due</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for task in care_tasks %}
+
+                <tr>
+
+                    <td>
+
+                        <a href="{% url 'task_detail' task.pk %}">
+                            <strong>
+                                {{ task.title }}
+                            </strong>
+                        </a>
+
+                        <div class="table-secondary">
+                            {{ task.get_task_type_display }}
+                        </div>
+
+                    </td>
+
+
+                    <td>
+
+                        {% if task.assigned_to %}
+                            {{ task.assigned_to }}
+                        {% else %}
+                            <span class="text-muted">
+                                Unassigned
+                            </span>
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+
+                        {{ task.due_date|date:"d M Y" }}
+
+                        {% if task.due_time %}
+
+                            <div class="table-secondary">
+                                {{ task.due_time|time:"H:i" }}
+                            </div>
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+
+                        <span class="priority-badge priority-{{ task.priority }}">
+                            {{ task.get_priority_display }}
+                        </span>
+
+                    </td>
+
+
+                    <td>
+
+                        <span class="status-badge status-{{ task.status }}">
+                            {{ task.get_status_display }}
+                        </span>
+
+                    </td>
+
+
+                    <td>
+
+                        <a
+                            href="{% url 'task_detail' task.pk %}"
+                            class="table-link"
+                        >
+                            View
+                        </a>
+
+                    </td>
+
+                </tr>
+
+
+                {% empty %}
+
+                <tr>
+
+                    <td colspan="6">
+
+                        <div class="empty-state">
+
+                            <strong>
+                                No care tasks
+                            </strong>
+
+                            <p>
+                                No care tasks have been created for this resident.
+                            </p>
+
+                        </div>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+<!-- CARE NEEDS -->
+
+<div class="card">
+
+    <div class="card-header">
+
+        <div>
+
+            <h3>
+                Care Needs
+            </h3>
+
+            <span class="card-subtitle">
+                Current support requirements
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <div class="care-needs-grid">
+
+        <div class="care-need">
+
+            <span>Mobility</span>
+
+            {% if resident.mobility_needs %}
+                <p>{{ resident.mobility_needs }}</p>
+            {% else %}
+                <p class="text-muted">No specific needs recorded.</p>
+            {% endif %}
+
+        </div>
+
+
+        <div class="care-need">
+
+            <span>Nutrition</span>
+
+            {% if resident.nutrition_needs %}
+                <p>{{ resident.nutrition_needs }}</p>
+            {% else %}
+                <p class="text-muted">No specific needs recorded.</p>
+            {% endif %}
+
+        </div>
+
+
+        <div class="care-need">
+
+            <span>Communication</span>
+
+            {% if resident.communication_needs %}
+                <p>{{ resident.communication_needs }}</p>
+            {% else %}
+                <p class="text-muted">No specific needs recorded.</p>
+            {% endif %}
+
+        </div>
+
+
+        <div class="care-need">
+
+            <span>Cognitive Support</span>
+
+            {% if resident.cognitive_support_needs %}
+                <p>{{ resident.cognitive_support_needs }}</p>
+            {% else %}
+                <p class="text-muted">No specific needs recorded.</p>
+            {% endif %}
+
+        </div>
+
+
+        <div class="care-need">
+
+            <span>Behavioural Support</span>
+
+            {% if resident.behavioural_support_needs %}
+                <p>{{ resident.behavioural_support_needs }}</p>
+            {% else %}
+                <p class="text-muted">No specific needs recorded.</p>
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- MAIN GRID -->
+
+<div class="resident-dashboard-grid">
+
+
+    <!-- MEDICATIONS -->
+
+    <div class="card">
+
+        <div class="card-header">
+
+            <div>
+
+                <h3>
+                    Medications
+                </h3>
+
+                <span class="card-subtitle">
+                    Current and recent medications
+                </span>
+
+            </div>
+
+            <a
+                href="{% url 'medication_list' %}"
+                class="table-link"
+            >
+                View all →
+            </a>
+
+        </div>
+
+
+        {% for medication in medications %}
+
+        <div class="resident-list-item">
+
+            <div>
+
+                <strong>
+                    {{ medication.name }}
+                </strong>
+
+                <span>
+                    {{ medication.dose }}
+                    ·
+                    {{ medication.frequency }}
+                </span>
+
+            </div>
+
+
+            <span>
+                {{ medication.get_status_display }}
+            </span>
+
+        </div>
+
+        {% empty %}
+
+        <div class="empty-state">
+            No medications recorded.
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+
+    <!-- INCIDENTS -->
+
+    <div class="card">
+
+        <div class="card-header">
+
+            <div>
+
+                <h3>
+                    Incidents
+                </h3>
+
+                <span class="card-subtitle">
+                    Recent incidents
+                </span>
+
+            </div>
+
+            <a
+                href="{% url 'incident_list' %}"
+                class="table-link"
+            >
+                View all →
+            </a>
+
+        </div>
+
+
+        {% for incident in incidents %}
+
+        <a
+            href="{% url 'incident_detail' incident.pk %}"
+            class="resident-list-item"
+        >
+
+            <div>
+
+                <strong>
+                    {{ incident.get_category_display }}
+                </strong>
+
+                <span>
+                    {{ incident.incident_date|date:"d M Y, H:i" }}
+                </span>
+
+            </div>
+
+
+            <span>
+                {{ incident.get_severity_display }}
+            </span>
+
+        </a>
+
+        {% empty %}
+
+        <div class="empty-state">
+            No incidents recorded.
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+
+</div>
+
+
+<!-- APPOINTMENTS -->
+
+<div class="card">
+
+    <div class="card-header">
+
+        <div>
+
+            <h3>
+                Appointments
+            </h3>
+
+            <span class="card-subtitle">
+                Upcoming and recent appointments
+            </span>
+
+        </div>
+
+        <a
+            href="{% url 'appointment_list' %}"
+            class="table-link"
+        >
+            View all →
+        </a>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        Date
+                    </th>
+
+                    <th>
+                        Appointment
+                    </th>
+
+                    <th>
+                        Provider
+                    </th>
+
+                    <th>
+                        Location
+                    </th>
+
+                    <th>
+                        Status
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for appointment in appointments %}
+
+                <tr>
+
+                    <td>
+                        {{ appointment.appointment_date|date:"d M Y" }}
+                        {{ appointment.start_time|time:"H:i" }}
+                    </td>
+
+                    <td>
+                        <strong>
+                            {{ appointment.title }}
+                        </strong>
+                    </td>
+
+                    <td>
+                        {{ appointment.provider|default:"—" }}
+                    </td>
+
+                    <td>
+                        {{ appointment.location|default:"—" }}
+                    </td>
+
+                    <td>
+                        {{ appointment.get_status_display }}
+                    </td>
+
+                </tr>
+
+                {% empty %}
+
+                <tr>
+
+                    <td colspan="5">
+
+                        <div class="empty-state">
+                            No appointments recorded.
+                        </div>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+<!-- CARE PLANS -->
+
+<div class="card">
+
+    <div class="card-header">
+
+        <div>
+
+            <h3>
+                Care Plans
+            </h3>
+
+            <span class="card-subtitle">
+                Resident care planning
+            </span>
+
+        </div>
+
+    </div>
+
+
+    {% for plan in care_plans %}
+
+    <div class="care-plan-item">
+
+        <div>
+
+            <strong>
+                {{ plan }}
+            </strong>
+
+            <span>
+                Created {{ plan.created_at|date:"d M Y" }}
+            </span>
+
+        </div>
+
+    </div>
+
+    {% empty %}
+
+    <div class="empty-state">
+        No care plans recorded.
+    </div>
+
+    {% endfor %}
+
+</div>
+
+
+<!-- CONTACTS -->
+
+<div class="card">
+
+    <div class="card-header">
+
+        <div>
+
+            <h3>
+                Contacts
+            </h3>
+
+            <span class="card-subtitle">
+                Family and emergency contacts
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <div class="contacts-grid">
+
+        {% for contact in contacts %}
+
+        <div class="contact-card">
+
+            <strong>
+                {{ contact.name }}
+            </strong>
+
+            <span>
+                {{ contact.get_contact_type_display }}
+            </span>
+
+            <span>
+                {{ contact.relationship }}
+            </span>
+
+            <span>
+                {{ contact.phone }}
+            </span>
+
+            {% if contact.email %}
+
+            <span>
+                {{ contact.email }}
+            </span>
+
+            {% endif %}
+
+        </div>
+
+        {% empty %}
+
+        <div class="empty-state">
+            No contacts recorded.
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+</div>
+
+{% endblock %}

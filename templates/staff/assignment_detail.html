@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Staff Assignment | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <a
+            href="{% url 'assignment_list' %}"
+            class="back-link"
+        >
+            ← Staff Assignments
+        </a>
+
+        <h2>
+            Staff Assignment
+        </h2>
+
+        <p>
+
+            {{ assignment.staff.user.get_full_name }}
+            →
+            {{ assignment.resident.first_name }}
+            {{ assignment.resident.last_name }}
+
+        </p>
+
+    </div>
+
+
+    <div class="detail-actions">
+
+        {% if perms.staff.change_residentstaffassignment %}
+
+        <a
+            href="{% url 'assignment_edit' assignment.pk %}"
+            class="btn btn-secondary"
+        >
+            Edit
+        </a>
+
+        {% endif %}
+
+
+        {% if perms.staff.delete_residentstaffassignment %}
+
+        <a
+            href="{% url 'assignment_delete' assignment.pk %}"
+            class="btn btn-danger"
+        >
+            Delete
+        </a>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<div class="card">
+
+    <div class="info-grid">
+
+        <div>
+            <span>Resident</span>
+            <strong>
+                {{ assignment.resident }}
+            </strong>
+        </div>
+
+        <div>
+            <span>Staff Member</span>
+            <strong>
+                {{ assignment.staff.user.get_full_name }}
+            </strong>
+        </div>
+
+        <div>
+            <span>Role</span>
+            <strong>
+                {{ assignment.get_role_display }}
+            </strong>
+        </div>
+
+        <div>
+            <span>Start Date</span>
+            <strong>
+                {{ assignment.start_date|date:"d M Y" }}
+            </strong>
+        </div>
+
+        <div>
+            <span>End Date</span>
+            <strong>
+
+                {% if assignment.end_date %}
+                    {{ assignment.end_date|date:"d M Y" }}
+                {% else %}
+                    —
+                {% endif %}
+
+            </strong>
+        </div>
+
+        <div>
+            <span>Status</span>
+            <strong>
+
+                {% if assignment.is_active %}
+                    Active
+                {% else %}
+                    Inactive
+                {% endif %}
+
+            </strong>
+        </div>
+
+    </div>
+
+
+    <div class="card-section">
+
+        <h3>
+            Notes
+        </h3>
+
+        {% if assignment.notes %}
+
+            {{ assignment.notes|linebreaks }}
+
+        {% else %}
+
+            <span class="text-muted">
+                No notes recorded.
+            </span>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}

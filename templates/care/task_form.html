@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <a
+            href="{% url 'task_list' %}"
+            class="back-link"
+        >
+            ← Care Tasks
+        </a>
+
+        <h2>
+            {{ title }}
+        </h2>
+
+    </div>
+
+</div>
+
+
+<div class="card form-card">
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+        {% for field in form %}
+
+        <div class="form-group">
+
+            {{ field.label_tag }}
+
+            {{ field }}
+
+            {% for error in field.errors %}
+
+            <div class="field-error">
+                {{ error }}
+            </div>
+
+            {% endfor %}
+
+        </div>
+
+        {% endfor %}
+
+
+        <div class="form-actions">
+
+            <a
+                href="{% url 'task_list' %}"
+                class="btn btn-secondary"
+            >
+                Cancel
+            </a>
+
+            <button
+                type="submit"
+                class="btn btn-primary"
+            >
+                {{ button_text }}
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}

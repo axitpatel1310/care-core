@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Medication Administration | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <span class="eyebrow">
+            MEDICATION MANAGEMENT
+        </span>
+
+        <h2>
+            Medication Administration
+        </h2>
+
+        <p>
+            Record and review medication administration events.
+        </p>
+
+    </div>
+
+
+    {% if perms.medications.add_medicationadministration %}
+
+    <a
+        href="{% url 'administration_create' %}"
+        class="btn btn-primary"
+    >
+        + Record Administration
+    </a>
+
+    {% endif %}
+
+</div>
+
+
+<div class="card">
+
+    <div class="toolbar">
+
+        <form method="GET">
+
+            <div class="search-box">
+
+                <span>⌕</span>
+
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ query }}"
+                    placeholder="Search medication or resident..."
+                >
+
+            </div>
+
+        </form>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Resident</th>
+                    <th>Medication</th>
+                    <th>Administered At</th>
+                    <th>Administered By</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for administration in administrations %}
+
+                <tr>
+
+                    <td>
+
+                        <strong>
+
+                            {{ administration.medication.resident.first_name }}
+                            {{ administration.medication.resident.last_name }}
+
+                        </strong>
+
+                    </td>
+
+
+                    <td>
+                        {{ administration.medication.name }}
+                    </td>
+
+
+                    <td>
+                        {{ administration.administered_at|date:"d M Y, H:i" }}
+                    </td>
+
+
+                    <td>
+
+                        {% if administration.administered_by %}
+
+                            {{ administration.administered_by.user.get_full_name }}
+
+                        {% else %}
+
+                            —
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+
+                        <span class="status-badge {{ administration.status }}">
+
+                            {{ administration.get_status_display }}
+
+                        </span>
+
+                    </td>
+
+
+                    <td>
+
+                        <a
+                            href="{% url 'administration_detail' administration.pk %}"
+                            class="table-link"
+                        >
+                            View →
+                        </a>
+
+                    </td>
+
+                </tr>
+
+
+                {% empty %}
+
+                <tr>
+
+                    <td colspan="6">
+
+                        <div class="empty-state large">
+                            No administration records found.
+                        </div>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

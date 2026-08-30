@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Behavioural Support | CareCore
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <a
+            href="{% url 'behavioural_support_list' %}"
+            class="back-link"
+        >
+            ← Behavioural Support
+        </a>
+
+        <h2>
+            Cognitive & Behavioural Support
+        </h2>
+
+        <p>
+
+            {{ support.resident.first_name }}
+            {{ support.resident.last_name }}
+
+        </p>
+
+    </div>
+
+
+    <div class="detail-actions">
+
+        {% if perms.care.change_cognitivebehaviouralsupport %}
+
+        <a
+            href="{% url 'behavioural_support_edit' support.pk %}"
+            class="btn btn-secondary"
+        >
+            Edit
+        </a>
+
+        {% endif %}
+
+
+        {% if perms.care.delete_cognitivebehaviouralsupport %}
+
+        <a
+            href="{% url 'behavioural_support_delete' support.pk %}"
+            class="btn btn-danger"
+        >
+            Delete
+        </a>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<div class="profile-grid">
+
+
+    <div class="card">
+
+        <div class="card-header">
+
+            <h3>
+                Support Requirements
+            </h3>
+
+        </div>
+
+        <div class="text-content">
+
+            {{ support.support_requirements|default:"No information recorded."|linebreaks }}
+
+        </div>
+
+    </div>
+
+
+    <div class="card">
+
+        <div class="card-header">
+
+            <h3>
+                Known Triggers
+            </h3>
+
+        </div>
+
+        <div class="text-content">
+
+            {{ support.known_triggers|default:"No known triggers recorded."|linebreaks }}
+
+        </div>
+
+    </div>
+
+
+    <div class="card">
+
+        <div class="card-header">
+
+            <h3>
+                Communication Preferences
+            </h3>
+
+        </div>
+
+        <div class="text-content">
+
+            {{ support.communication_preferences|default:"No preferences recorded."|linebreaks }}
+
+        </div>
+
+    </div>
+
+
+    <div class="card">
+
+        <div class="card-header">
+
+            <h3>
+                Behaviour Observations
+            </h3>
+
+        </div>
+
+        <div class="text-content">
+
+            {{ support.behaviour_observations|default:"No observations recorded."|linebreaks }}
+
+        </div>
+
+    </div>
+
+
+    <div class="card">
+
+        <div class="card-header">
+
+            <h3>
+                De-escalation Strategies
+            </h3>
+
+        </div>
+
+        <div class="text-content">
+
+            {{ support.de_escalation_strategies|default:"No strategies recorded."|linebreaks }}
+
+        </div>
+
+    </div>
+
+
+    <div class="card">
+
+        <div class="card-header">
+
+            <h3>
+                Care Instructions
+            </h3>
+
+        </div>
+
+        <div class="text-content">
+
+            {{ support.care_instructions|default:"No care instructions recorded."|linebreaks }}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

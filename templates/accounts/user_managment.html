@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}
+User Management | CareCore
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+<div>
+
+    <span class="eyebrow">
+        ADMINISTRATION
+    </span>
+
+    <h2>
+        User Management
+    </h2>
+
+    <p>
+        Manage CareCore users and their roles.
+    </p>
+
+</div>
+```
+
+</div>
+
+<div class="card">
+
+```
+<div class="card-header">
+
+    <div>
+
+        <h3>
+            Users
+        </h3>
+
+        <span class="card-subtitle">
+            {{ users|length }} user{{ users|length|pluralize }}
+        </span>
+
+    </div>
+
+</div>
+
+
+<div class="table-wrapper">
+
+    <table>
+
+        <thead>
+
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+
+        </thead>
+
+
+        <tbody>
+
+            {% for user in users %}
+
+            <tr>
+
+                <td>
+
+                    <strong>
+                        {{ user.get_full_name|default:user.email }}
+                    </strong>
+
+                </td>
+
+
+                <td>
+                    {{ user.email }}
+                </td>
+
+
+                <td>
+                    {{ user.get_role_display }}
+                </td>
+
+
+                <td>
+
+                    {% if user.is_active %}
+
+                        <span class="status-badge status-active">
+                            Active
+                        </span>
+
+                    {% else %}
+
+                        <span class="status-badge status-inactive">
+                            Inactive
+                        </span>
+
+                    {% endif %}
+
+                </td>
+
+
+                <td>
+
+                    <a
+                        href="{% url 'user_edit' user.pk %}"
+                        class="table-link"
+                    >
+                        Edit →
+                    </a>
+
+                </td>
+
+            </tr>
+
+            {% empty %}
+
+            <tr>
+
+                <td colspan="5">
+
+                    <div class="empty-state">
+                        No users found.
+                    </div>
+
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</div>
+
+</div>
+
+{% endblock %}

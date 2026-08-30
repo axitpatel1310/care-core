@@ -1,0 +1,624 @@
+{% extends "base.html" %}
+
+{% block title %}
+Staff Workspace | CareCore
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <span class="eyebrow">
+            STAFF WORKSPACE
+        </span>
+
+        <h2>
+            Good morning, {{ staff }}
+        </h2>
+
+        <p>
+            Here's what needs your attention today.
+        </p>
+
+    </div>
+
+</div>
+
+
+<!-- ========================= -->
+<!-- SUMMARY -->
+<!-- ========================= -->
+
+<div class="dashboard-grid">
+
+    <div class="stat-card">
+
+        <span class="stat-label">
+            My Tasks
+        </span>
+
+        <strong class="stat-number">
+            {{ my_tasks|length }}
+        </strong>
+
+    </div>
+
+
+    <div class="stat-card">
+
+        <span class="stat-label">
+            Today's Tasks
+        </span>
+
+        <strong class="stat-number">
+            {{ todays_tasks|length }}
+        </strong>
+
+    </div>
+
+
+    <div class="stat-card">
+
+        <span class="stat-label">
+            Overdue
+        </span>
+
+        <strong class="stat-number">
+            {{ overdue_tasks|length }}
+        </strong>
+
+    </div>
+
+
+    <div class="stat-card">
+
+        <span class="stat-label">
+            Appointments
+        </span>
+
+        <strong class="stat-number">
+            {{ todays_appointments|length }}
+        </strong>
+
+    </div>
+
+</div>
+
+
+<!-- ========================= -->
+<!-- OVERDUE -->
+<!-- ========================= -->
+
+{% if overdue_tasks %}
+
+<div class="card">
+
+    <div class="card-header">
+
+        <div>
+
+            <h3>
+                Overdue Tasks
+            </h3>
+
+            <span class="card-subtitle">
+                These tasks require attention.
+            </span>
+
+        
+        </div>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Task</th>
+                    <th>Resident</th>
+                    <th>Due</th>
+                    <th>Priority</th>
+                    <th></th>
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for task in overdue_tasks %}
+
+                <tr>
+
+                    <td>
+
+                        <strong>
+                            {{ task.title }}
+                        </strong>
+
+                        <div class="table-secondary">
+                            {{ task.get_task_type_display }}
+                        </div>
+
+                    </td>
+
+
+                    <td>
+                        {{ task.resident }}
+                    </td>
+
+
+                    <td>
+                        {{ task.due_date|date:"d M Y" }}
+
+                        {% if task.due_time %}
+                        <div class="table-secondary">
+                            {{ task.due_time|time:"H:i" }}
+                        </div>
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+
+                        <span class="priority-badge priority-{{ task.priority }}">
+                            {{ task.get_priority_display }}
+                        </span>
+
+                    </td>
+
+
+                    <td>
+
+                        <a
+                            href="{% url 'task_detail' task.pk %}"
+                            class="table-link"
+                        >
+                            Open
+                        </a>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endif %}
+
+
+<!-- ========================= -->
+<!-- TODAY'S TASKS -->
+<!-- ========================= -->
+
+<div class="card">
+
+    <div class="card-header">
+
+        <div>
+
+            <h3>
+                Today's Tasks
+            </h3>
+
+            <span class="card-subtitle">
+                {{ today|date:"l, d F Y" }}
+            </span>
+
+        </div>
+
+
+        <a
+            href="{% url 'task_list' %}"
+            class="table-link"
+        >
+            View All
+        </a>
+
+    </div>
+
+
+    <div class="task-list">
+
+        {% for task in todays_tasks %}
+
+        <div class="task-row">
+
+            <div class="task-main">
+
+                <a
+                    href="{% url 'task_detail' task.pk %}"
+                >
+                    <strong>
+                        {{ task.title }}
+                    </strong>
+                </a>
+
+                <span class="table-secondary">
+                    {{ task.resident }}
+                </span>
+
+            </div>
+
+
+            <div class="task-meta">
+
+                {% if task.due_time %}
+                <span>
+                    {{ task.due_time|time:"H:i" }}
+                </span>
+                {% else %}
+                <span>
+                    Anytime
+                </span>
+                {% endif %}
+
+
+                <span class="priority-badge priority-{{ task.priority }}">
+                    {{ task.get_priority_display }}
+                </span>
+
+
+                <span class="status-badge status-{{ task.status }}">
+                    {{ task.get_status_display }}
+                </span>
+
+            </div>
+
+        </div>
+
+
+        {% empty %}
+
+        <div class="empty-state">
+
+            <strong>
+                No tasks for today
+            </strong>
+
+            <p>
+                You're all caught up.
+            </p>
+
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+</div>
+
+
+<!-- ========================= -->
+<!-- APPOINTMENTS -->
+<!-- ========================= -->
+
+<div class="card">
+
+    <div class="card-header">
+
+        <div>
+
+            <h3>
+                Today's Appointments
+            </h3>
+
+        </div>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Time</th>
+                    <th>Resident</th>
+                    <th>Appointment</th>
+                    <th>Location</th>
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for appointment in todays_appointments %}
+
+                <tr>
+
+                    <td>
+
+                        {% if appointment.appointment_time %}
+                            {{ appointment.appointment_time|time:"H:i" }}
+                        {% else %}
+                            —
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+                        {{ appointment.resident }}
+                    </td>
+
+
+                    <td>
+                        {{ appointment.title }}
+                    </td>
+
+
+                    <td>
+                        {{ appointment.location|default:"—" }}
+                    </td>
+
+                </tr>
+
+
+                {% empty %}
+
+                <tr>
+
+                    <td colspan="4">
+
+                        <div class="empty-state">
+                            No appointments today.
+                        </div>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+<!-- ========================= -->
+<!-- MEDICATIONS -->
+<!-- ========================= -->
+
+<div class="card">
+
+    <div class="card-header">
+
+        <div>
+
+            <h3>
+                Medication Administration
+            </h3>
+
+            <span class="card-subtitle">
+                Today's recorded administrations
+            </span>
+
+        </div>
+
+        <a
+            href="{% url 'medication_administration_history' %}"
+            class="table-link"
+        >
+            View MAR
+        </a>
+        <a
+    href="{% url 'medication_due_today' %}"
+    class="table-link"
+>
+    Medications Due
+</a>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Time</th>
+                    <th>Resident</th>
+                    <th>Medication</th>
+                    <th>Status</th>
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for administration in todays_medications %}
+
+                <tr>
+
+                    <td>
+                        {{ administration.administered_at|date:"H:i" }}
+                    </td>
+
+
+                    <td>
+                        {{ administration.medication.resident }}
+                    </td>
+
+
+                    <td>
+                        {{ administration.medication.name }}
+                    </td>
+
+
+                    <td>
+
+                        <span class="status-badge status-{{ administration.status }}">
+                            {{ administration.get_status_display }}
+                        </span>
+
+                    </td>
+
+                </tr>
+
+
+                {% empty %}
+
+                <tr>
+
+                    <td colspan="4">
+
+                        <div class="empty-state">
+                            No medication administrations recorded today.
+                        </div>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+<!-- ========================= -->
+<!-- INCIDENTS -->
+<!-- ========================= -->
+
+<div class="card">
+
+    <div class="card-header">
+
+        <div>
+
+            <h3>
+                Open Incidents
+            </h3>
+
+            <span class="card-subtitle">
+                Incidents requiring attention
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Incident</th>
+                    <th>Resident</th>
+                    <th>Severity</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for incident in open_incidents %}
+
+                <tr>
+
+                    <td>
+
+                        <a href="{% url 'incident_detail' incident.pk %}">
+                            <strong>
+                                Incident #{{ incident.pk }}
+                            </strong>
+                        </a>
+
+                        <div class="table-secondary">
+                            {{ incident.get_category_display }}
+                        </div>
+
+                    </td>
+
+
+                    <td>
+                        {{ incident.resident|default:"—" }}
+                    </td>
+
+
+                    <td>
+
+                        <span class="priority-badge priority-{{ incident.severity }}">
+                            {{ incident.get_severity_display }}
+                        </span>
+
+                    </td>
+
+
+                    <td>
+
+                        <span class="status-badge status-{{ incident.status }}">
+                            {{ incident.get_status_display }}
+                        </span>
+
+                    </td>
+
+
+                    <td>
+                        {{ incident.incident_date|date:"d M Y H:i" }}
+                    </td>
+
+                </tr>
+
+
+                {% empty %}
+
+                <tr>
+
+                    <td colspan="5">
+
+                        <div class="empty-state">
+                            No open incidents.
+                        </div>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

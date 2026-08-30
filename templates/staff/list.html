@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block title %}Staff | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <span class="eyebrow">PEOPLE</span>
+
+        <h2>Staff</h2>
+
+        <p>
+            Manage employees, roles and facility assignments.
+        </p>
+
+    </div>
+
+    {% if perms.staff.add_staffmember %}
+
+    <a
+        href="{% url 'staff_create' %}"
+        class="btn btn-primary"
+    >
+        + Add Staff
+    </a>
+
+    {% endif %}
+
+</div>
+
+
+<div class="card">
+
+    <div class="toolbar">
+
+        <form method="GET" class="staff-search-form">
+
+            <div class="search-box">
+
+                <span>⌕</span>
+
+                <input
+                    type="text"
+                    name="q"
+                    placeholder="Search name, email or employee ID..."
+                    value="{{ query }}"
+                >
+
+            </div>
+
+            <select
+                name="status"
+                class="filter-select"
+                onchange="this.form.submit()"
+            >
+
+                <option value="">
+                    All statuses
+                </option>
+
+                <option
+                    value="active"
+                    {% if status == "active" %}selected{% endif %}
+                >
+                    Active
+                </option>
+
+                <option
+                    value="leave"
+                    {% if status == "leave" %}selected{% endif %}
+                >
+                    On Leave
+                </option>
+
+                <option
+                    value="inactive"
+                    {% if status == "inactive" %}selected{% endif %}
+                >
+                    Inactive
+                </option>
+
+            </select>
+
+            <button
+                type="submit"
+                class="btn btn-secondary"
+            >
+                Search
+            </button>
+
+        </form>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Staff Member</th>
+                    <th>Employee ID</th>
+                    <th>Role</th>
+                    <th>Facility</th>
+                    <th>Ward</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for member in staff %}
+
+                <tr>
+
+                    <td>
+
+                        <div class="table-person">
+
+                            <div class="avatar">
+
+                                {{ member.user.first_name|first }}
+                                {{ member.user.last_name|first }}
+
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    {{ member.user.get_full_name }}
+                                </strong>
+
+                                <span>
+                                    {{ member.user.email }}
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </td>
+
+
+                    <td>
+                        {{ member.employee_id }}
+                    </td>
+
+
+                    <td>
+
+                        <span class="role-badge">
+                            {{ member.user.get_role_display }}
+                        </span>
+
+                    </td>
+
+
+                    <td>
+                        {{ member.facility.name|default:"—" }}
+                    </td>
+
+
+                    <td>
+                        {{ member.ward.name|default:"—" }}
+                    </td>
+
+
+                    <td>
+
+                        <span class="status-badge
+                            {% if member.employment_status == 'active' %}
+                                active
+                            {% elif member.employment_status == 'leave' %}
+                                medium
+                            {% else %}
+                                open
+                            {% endif %}
+                        ">
+                            {{ member.get_employment_status_display }}
+                        </span>
+
+                    </td>
+
+
+                    <td>
+
+                        <a
+                            href="{% url 'staff_detail' member.pk %}"
+                            class="table-link"
+                        >
+                            View →
+                        </a>
+
+                    </td>
+
+                </tr>
+
+                {% empty %}
+
+                <tr>
+
+                    <td colspan="7">
+
+                        <div class="empty-state large">
+
+                            No staff members found.
+
+                            {% if perms.staff.add_staffmember %}
+
+                            <div style="margin-top: 12px;">
+
+                                <a
+                                    href="{% url 'staff_create' %}"
+                                    class="btn btn-primary"
+                                >
+                                    Add First Staff Member
+                                </a>
+
+                            </div>
+
+                            {% endif %}
+
+                        </div>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

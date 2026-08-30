@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Administration Record | CareCore
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <a
+            href="{% url 'administration_list' %}"
+            class="back-link"
+        >
+            ← Administration
+        </a>
+
+        <h2>
+            {{ administration.medication.name }}
+        </h2>
+
+        <p>
+
+            {{ administration.medication.resident.first_name }}
+            {{ administration.medication.resident.last_name }}
+
+        </p>
+
+    </div>
+
+
+    <div class="detail-actions">
+
+        {% if perms.medications.change_medicationadministration %}
+
+        <a
+            href="{% url 'administration_edit' administration.pk %}"
+            class="btn btn-secondary"
+        >
+            Edit
+        </a>
+
+        {% endif %}
+
+
+        {% if perms.medications.delete_medicationadministration %}
+
+        <a
+            href="{% url 'administration_delete' administration.pk %}"
+            class="btn btn-danger"
+        >
+            Delete
+        </a>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<div class="card">
+
+    <div class="card-header">
+
+        <h3>
+            Administration Record
+        </h3>
+
+    </div>
+
+
+    <div class="info-grid">
+
+        <div>
+
+            <span>Resident</span>
+
+            <strong>
+
+                {{ administration.medication.resident.first_name }}
+                {{ administration.medication.resident.last_name }}
+
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>Medication</span>
+
+            <strong>
+                {{ administration.medication.name }}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>Dose</span>
+
+            <strong>
+                {{ administration.medication.dose }}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>Route</span>
+
+            <strong>
+                {{ administration.medication.route }}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>Administered At</span>
+
+            <strong>
+                {{ administration.administered_at|date:"d M Y, H:i" }}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>Administered By</span>
+
+            <strong>
+
+                {% if administration.administered_by %}
+
+                    {{ administration.administered_by.user.get_full_name }}
+
+                {% else %}
+
+                    —
+
+                {% endif %}
+
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span>Status</span>
+
+            <strong>
+                {{ administration.get_status_display }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <div class="card-section">
+
+        <h3>
+            Notes
+        </h3>
+
+
+        <div class="text-content">
+
+            {% if administration.notes %}
+
+                {{ administration.notes|linebreaks }}
+
+            {% else %}
+
+                <span class="text-muted">
+                    No notes recorded.
+                </span>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

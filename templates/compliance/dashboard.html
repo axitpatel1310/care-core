@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}Compliance | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <span class="eyebrow">GOVERNANCE</span>
+
+        <h2>Compliance</h2>
+
+        <p>
+            Monitor documents, risks, audits and corrective actions.
+        </p>
+
+    </div>
+
+</div>
+
+
+<div class="stats-grid">
+
+    <div class="stat-card">
+        <div class="stat-top">
+            <span class="stat-label">Documents</span>
+            <span class="stat-icon">▤</span>
+        </div>
+
+        <div class="stat-value">
+            {{ documents|length }}
+        </div>
+    </div>
+
+
+    <div class="stat-card">
+        <div class="stat-top">
+            <span class="stat-label">Risks</span>
+            <span class="stat-icon warning-icon">△</span>
+        </div>
+
+        <div class="stat-value">
+            {{ risks|length }}
+        </div>
+    </div>
+
+
+    <div class="stat-card">
+        <div class="stat-top">
+            <span class="stat-label">Audits</span>
+            <span class="stat-icon">⌕</span>
+        </div>
+
+        <div class="stat-value">
+            {{ audits|length }}
+        </div>
+    </div>
+
+
+    <div class="stat-card">
+        <div class="stat-top">
+            <span class="stat-label">Actions</span>
+            <span class="stat-icon danger-icon">!</span>
+        </div>
+
+        <div class="stat-value">
+            {{ actions|length }}
+        </div>
+    </div>
+
+</div>
+
+
+<div class="dashboard-grid">
+
+
+    <!-- DOCUMENTS -->
+
+    <div class="card">
+
+        <div class="card-header">
+
+            <div>
+                <h3>Compliance Documents</h3>
+                <p>Policies, procedures and standards</p>
+            </div>
+
+        </div>
+
+
+        <div class="list">
+
+            {% for document in documents %}
+
+            <div class="list-item">
+
+                <div class="list-icon">
+                    ▤
+                </div>
+
+                <div class="list-content">
+
+                    <strong>
+                        {{ document.title }}
+                    </strong>
+
+                    <span>
+                        Version {{ document.version }}
+                    </span>
+
+                </div>
+
+                <span class="status-badge active">
+                    {{ document.get_status_display }}
+                </span>
+
+            </div>
+
+            {% empty %}
+
+            <div class="empty-state">
+                No compliance documents.
+            </div>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+
+    <!-- RISKS -->
+
+    <div class="card">
+
+        <div class="card-header">
+
+            <div>
+                <h3>Risk Register</h3>
+                <p>Active facility risks</p>
+            </div>
+
+        </div>
+
+
+        <div class="list">
+
+            {% for risk in risks %}
+
+            <div class="list-item">
+
+                <div class="list-icon risk">
+                    △
+                </div>
+
+                <div class="list-content">
+
+                    <strong>
+                        {{ risk.description }}
+                    </strong>
+
+                    <span>
+                        {{ risk.get_category_display }}
+                    </span>
+
+                </div>
+
+                <span class="status-badge {{ risk.severity|lower }}">
+                    {{ risk.severity }}
+                </span>
+
+            </div>
+
+            {% empty %}
+
+            <div class="empty-state">
+                No risks recorded.
+            </div>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+
+    <!-- ACTIONS -->
+
+    <div class="card">
+
+        <div class="card-header">
+
+            <div>
+                <h3>Corrective Actions</h3>
+                <p>Actions generated from findings</p>
+            </div>
+
+        </div>
+
+
+        <div class="list">
+
+            {% for action in actions %}
+
+            <div class="list-item">
+
+                <div class="list-icon incident">
+                    ✓
+                </div>
+
+                <div class="list-content">
+
+                    <strong>
+                        {{ action.title }}
+                    </strong>
+
+                    <span>
+                        Due {{ action.due_date|date:"d M Y" }}
+                    </span>
+
+                </div>
+
+                <span class="status-badge">
+                    {{ action.get_status_display }}
+                </span>
+
+            </div>
+
+            {% empty %}
+
+            <div class="empty-state">
+                No corrective actions.
+            </div>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
