@@ -103,45 +103,22 @@
         <div class="nav-section">
             <span class="nav-label">Compliance</span>
 
-            <a href="#" class="nav-item">
-                Risks
-            </a>
-
+            
             <a href="{% url 'compliance_dashboard' %}" class="nav-item">
                 Compliance
             </a>
 
-            <a href="#" class="nav-item">
-                Audits
-            </a>
-
-            <a href="#" class="nav-item">
-                Actions
-            </a>
+        
         </div>
 
 
-        <div class="nav-section">
-            <span class="nav-label">Operations</span>
-
-            <a href="#" class="nav-item">
-                Calendar
-            </a>
-
-            <a href="#" class="nav-item">
-                Reports
-            </a>
-        </div>
-
+        
     </nav>
 
 
     <div class="sidebar-bottom">
 
-        <a href="#" class="nav-item settings-link">
-            Settings
-        </a>
-
+        
         {% if user.is_authenticated %}
 
         <div class="user-mini">
