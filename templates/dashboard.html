@@ -64,39 +64,8 @@ Dashboard | CareCore
     </div>
 
 
-    <div class="stat-card">
 
-        <span class="stat-label">
-            Today's Appointments
-        </span>
-
-        <strong class="stat-number">
-            {{ appointments_today_count }}
-        </strong>
-
-        <a href="{% url 'appointment_list' %}">
-            View appointments →
-        </a>
-
-    </div>
-
-
-    <div class="stat-card">
-
-        <span class="stat-label">
-            Open Incidents
-        </span>
-
-        <strong class="stat-number">
-            {{ open_incidents_count }}
-        </strong>
-
-        <a href="{% url 'incident_list' %}">
-            View incidents →
-        </a>
-
-    </div>
-
+    
 </div>
 
 
@@ -198,13 +167,16 @@ Dashboard | CareCore
 
         <div>
             <h3>
-                Today's Appointments
+                All Appointments
             </h3>
 
             <span class="card-subtitle">
-                {{ appointments_today_count }}
-                appointment{{ appointments_today_count|pluralize }}
+                {{ appointments_count }}
+                appointment{{ appointments_count|pluralize }}
             </span>
+
+
+            
         </div>
 
         <a
@@ -235,12 +207,12 @@ Dashboard | CareCore
 
             <tbody>
 
-                {% for appointment in appointments_today %}
+                {% for appointment in appointments %}
 
                 <tr>
 
                     <td>
-                        {{ appointment.appointment_time|time:"H:i" }}
+                        {{ appointment.start_time|time:"H:i" }}
                     </td>
 
                     <td>
@@ -257,20 +229,6 @@ Dashboard | CareCore
 
                 </tr>
 
-                {% empty %}
-
-                <tr>
-
-                    <td colspan="4">
-
-                        <div class="empty-state">
-                            No appointments scheduled for today.
-                        </div>
-
-                    </td>
-
-                </tr>
-
                 {% endfor %}
 
             </tbody>
@@ -281,8 +239,7 @@ Dashboard | CareCore
 
 </div>
 
-
-<!-- OPEN INCIDENTS -->
+<!-- ALL INCIDENTS -->
 
 <div class="card">
 
@@ -290,12 +247,12 @@ Dashboard | CareCore
 
         <div>
             <h3>
-                Open Incidents
+                All Incidents
             </h3>
 
             <span class="card-subtitle">
-                {{ open_incidents_count }}
-                unresolved incident{{ open_incidents_count|pluralize }}
+                {{ incidents_count }}
+                incident{{ incidents_count|pluralize }}
             </span>
         </div>
 
@@ -320,6 +277,7 @@ Dashboard | CareCore
                     <th>Category</th>
                     <th>Severity</th>
                     <th>Date</th>
+                    <th>Reported By</th>
                     <th>Status</th>
                 </tr>
 
@@ -328,7 +286,7 @@ Dashboard | CareCore
 
             <tbody>
 
-                {% for incident in open_incidents %}
+                {% for incident in incidents %}
 
                 <tr>
 
@@ -353,11 +311,17 @@ Dashboard | CareCore
                     </td>
 
                     <td>
+                        {% if incident.reported_by %}
+                            {{ incident.reported_by }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
 
+                    <td>
                         <span class="status-badge status-{{ incident.status }}">
                             {{ incident.get_status_display }}
                         </span>
-
                     </td>
 
                 </tr>
@@ -366,10 +330,10 @@ Dashboard | CareCore
 
                 <tr>
 
-                    <td colspan="5">
+                    <td colspan="6">
 
                         <div class="empty-state">
-                            No open incidents. Everything is clear.
+                            No incidents recorded.
                         </div>
 
                     </td>
@@ -385,6 +349,5 @@ Dashboard | CareCore
     </div>
 
 </div>
-
 
 {% endblock %}
