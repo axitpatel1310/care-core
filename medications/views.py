@@ -313,7 +313,7 @@ def administration_create(request, medication_id):
 
             staff_member = getattr(
                 request.user,
-                "staff_member",
+                "staff_profile",
                 None,
             )
 
@@ -447,6 +447,7 @@ def administration_edit(request, pk):
         {
             "form": form,
             "administration": administration,
+            "medication": administration.medication,
             "title": "Edit Administration Record",
             "button_text": "Save Changes",
         },

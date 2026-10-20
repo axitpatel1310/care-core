@@ -12,7 +12,7 @@ from accounts.audit import create_audit_log
 
 @login_required
 @permission_required(
-    "incident.view_incident",
+    "incidents.view_incident",
     raise_exception=True,
 )
 def incident_list(request):
@@ -83,7 +83,7 @@ def incident_list(request):
 
 @login_required
 @permission_required(
-    "incident.add_incident",
+    "incidents.add_incident",
     raise_exception=True,
 )
 def incident_create(request):
@@ -105,7 +105,7 @@ def incident_create(request):
 
             staff_member = getattr(
                 request.user,
-                "staff_member",
+                "staff_profile",
                 None,
             )
 
@@ -152,7 +152,7 @@ def incident_create(request):
 
 @login_required
 @permission_required(
-    "incident.view_incident",
+    "incidents.view_incident",
     raise_exception=True,
 )
 def incident_detail(request, pk):
@@ -226,7 +226,7 @@ def incident_investigate(request, pk):
 
     return render(
         request,
-        "incidents/incident_investigate.html",
+        "incident/incident_investigate.html",
         {
             "form": form,
             "incident": incident,
@@ -235,7 +235,7 @@ def incident_investigate(request, pk):
 
 @login_required
 @permission_required(
-    "incident.change_incident",
+    "incidents.change_incident",
     raise_exception=True,
 )
 def incident_edit(request, pk):
@@ -296,7 +296,7 @@ def incident_edit(request, pk):
     
 @login_required
 @permission_required(
-    "incident.change_incident",
+    "incidents.change_incident",
     raise_exception=True,
 )
 def incident_resolve(request, pk):
@@ -338,7 +338,7 @@ def incident_resolve(request, pk):
     
 @login_required
 @permission_required(
-    "incident.delete_incident",
+    "incidents.delete_incident",
     raise_exception=True,
 )
 def incident_delete(request, pk):

@@ -76,6 +76,18 @@
             <a href="{% url 'incident_list' %}" class="nav-item">
                 Incidents
             </a>
+
+            {% if perms.appointments.view_appointment %}
+            <a href="{% url 'appointment_list' %}" class="nav-item">
+                Appointments
+            </a>
+            {% endif %}
+
+            {% if perms.care.view_caretask %}
+            <a href="{% url 'task_list' %}" class="nav-item">
+                Care Tasks
+            </a>
+            {% endif %}
         </div>
 
 
@@ -108,7 +120,15 @@
                 Compliance
             </a>
 
-        
+            {% if user.role == "admin" %}
+            <a href="{% url 'user_management' %}" class="nav-item">
+                User Management
+            </a>
+
+            <a href="{% url 'audit_log' %}" class="nav-item">
+                Audit Log
+            </a>
+            {% endif %}
         </div>
 
 
@@ -185,6 +205,16 @@
 
 
         <section class="page-content">
+
+            {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                <div class="message {{ message.tags }}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
 
             {% block content %}
             {% endblock %}

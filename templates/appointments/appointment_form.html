@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <a
+            href="{% if appointment %}{% url 'appointment_detail' appointment.pk %}{% else %}{% url 'appointment_list' %}{% endif %}"
+            class="back-link"
+        >
+            ← {% if appointment %}{{ appointment.title }}{% else %}Appointments{% endif %}
+        </a>
+
+        <h2>
+            {{ title }}
+        </h2>
+
+    </div>
+
+</div>
+
+
+<div class="card form-card">
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+        {% include "partials/form_fields.html" %}
+
+        <div class="form-actions">
+
+            <a
+                href="{% if appointment %}{% url 'appointment_detail' appointment.pk %}{% else %}{% url 'appointment_list' %}{% endif %}"
+                class="btn btn-secondary"
+            >
+                Cancel
+            </a>
+
+            <button
+                type="submit"
+                class="btn btn-primary"
+            >
+                {{ button_text }}
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}

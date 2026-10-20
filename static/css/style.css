@@ -2968,3 +2968,25 @@ tbody tr:last-child td {
     }
 
 }
+
+/* =========================================================
+   APP MESSAGES
+   ========================================================= */
+
+.page-content .message {
+    font-size: 13px;
+    margin-bottom: 8px;
+}
+
+.message.info,
+.message.warning {
+    background: var(--info-bg);
+    color: var(--info);
+    border: 1px solid #d6e4ff;
+}
+
+.message.warning {
+    background: var(--warning-bg);
+    color: var(--warning);
+    border-color: #f5e3b3;
+}

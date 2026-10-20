@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Investigate Incident #{{ incident.pk }} | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <a
+            href="{% url 'incident_detail' incident.pk %}"
+            class="back-link"
+        >
+            ← Incident #{{ incident.pk }}
+        </a>
+
+        <h2>
+            Investigate Incident
+        </h2>
+
+        <p>
+            {{ incident.get_category_display }} ·
+            {{ incident.get_severity_display }} severity ·
+            {{ incident.resident|default:"No resident" }}
+        </p>
+
+    </div>
+
+</div>
+
+
+<div class="card form-card">
+
+    <div class="card-section">
+        <h3>Description</h3>
+        <p>{{ incident.description|linebreaksbr }}</p>
+    </div>
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+        {% include "partials/form_fields.html" %}
+
+        <div class="form-actions">
+
+            <a
+                href="{% url 'incident_detail' incident.pk %}"
+                class="btn btn-secondary"
+            >
+                Cancel
+            </a>
+
+            <button
+                type="submit"
+                class="btn btn-primary"
+            >
+                Save Investigation
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}
