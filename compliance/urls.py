@@ -15,6 +15,7 @@ urlpatterns = [
     path("documents/", views.DocumentList.as_view(), name="document_list"),
     path("documents/add/", views.DocumentCreate.as_view(), name="document_create"),
     path("documents/<int:pk>/", views.DocumentDetail.as_view(), name="document_detail"),
+    path("documents/<int:pk>/download/", views.document_download, name="document_download"),
     path("documents/<int:pk>/edit/", views.DocumentUpdate.as_view(), name="document_edit"),
     path("documents/<int:pk>/delete/", views.DocumentDelete.as_view(), name="document_delete"),
 

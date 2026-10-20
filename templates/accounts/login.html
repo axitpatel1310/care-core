@@ -74,6 +74,10 @@
 
             {% csrf_token %}
 
+            {% if next %}
+            <input type="hidden" name="next" value="{{ next }}">
+            {% endif %}
+
 
             <div class="form-group">
 
@@ -86,6 +90,7 @@
                     id="email"
                     name="email"
                     placeholder="you@example.com"
+                    value="{{ email }}"
                     required
                     autofocus
                 >
@@ -101,7 +106,7 @@
                         Password
                     </label>
 
-                    <a href="#">
+                    <a href="{% url 'password_reset' %}">
                         Forgot password?
                     </a>
 
@@ -133,7 +138,7 @@
             Don't have an account?
 
             <a href="{% url 'register' %}">
-                Create one
+                Request access
             </a>
 
         </div>

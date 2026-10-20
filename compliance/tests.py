@@ -7,7 +7,14 @@ from django.utils import timezone
 from carecore.testing import make_resident, make_user
 from incidents.models import Incident
 
-from .models import Audit, AuditControl, CorrectiveAction, Risk, severity_for_score
+from .models import (
+    Audit,
+    AuditControl,
+    ComplianceDocument,
+    CorrectiveAction,
+    Risk,
+    severity_for_score,
+)
 
 
 class RiskMatrixTests(TestCase):
@@ -123,3 +130,41 @@ class ComplianceViewTests(TestCase):
         top_row = response.context["risk_matrix"][0]
         self.assertEqual(top_row["impact"], 5)
         self.assertEqual(top_row["cells"][4]["count"], 1)
+
+
+class DocumentDownloadTests(TestCase):
+
+    def setUp(self):
+        import shutil
+        import tempfile
+
+        from django.core.files.base import ContentFile
+        from django.test import override_settings
+
+        self.media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.media, True)
+        self.override = override_settings(MEDIA_ROOT=self.media)
+        self.override.enable()
+        self.addCleanup(self.override.disable)
+
+        self.document = ComplianceDocument.objects.create(
+            title="Falls policy", document_type="policy", version="1",
+        )
+        self.document.file.save("falls.pdf", ContentFile(b"%PDF-1.4 demo"))
+
+    def test_staff_with_permission_can_download(self):
+        self.client.force_login(make_user("care_worker"))
+
+        response = self.client.get(reverse("document_download", args=[self.document.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(b"".join(response.streaming_content), b"%PDF-1.4 demo")
+
+    def test_anonymous_users_cannot_download(self):
+        response = self.client.get(reverse("document_download", args=[self.document.pk]))
+        self.assertEqual(response.status_code, 302)
+
+    def test_user_without_permission_is_refused(self):
+        self.client.force_login(make_user(role="unknown"))
+        response = self.client.get(reverse("document_download", args=[self.document.pk]))
+        self.assertEqual(response.status_code, 403)

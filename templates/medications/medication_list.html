@@ -131,7 +131,7 @@ Medications | CareCore
             </h3>
 
             <span class="card-subtitle">
-                {{ medications|length }} medication{{ medications|length|pluralize }}
+                {{ page.paginator.count }} medication{{ medications|length|pluralize }}
             </span>
 
         </div>
@@ -305,6 +305,8 @@ Medications | CareCore
     </div>
 
 </div>
+
+{% include "partials/pagination.html" %}
 
 {% endblock %}
 

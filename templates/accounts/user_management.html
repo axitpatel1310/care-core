@@ -1,147 +1,112 @@
 {% extends "base.html" %}
 
-{% block title %}
-User Management | CareCore
-{% endblock %}
+{% block title %}User Management | CareCore{% endblock %}
 
 {% block content %}
 
 <div class="page-header">
-
-<div>
-
-    <span class="eyebrow">
-        ADMINISTRATION
-    </span>
-
-    <h2>
-        User Management
-    </h2>
-
-    <p>
-        Manage CareCore users and their roles.
-    </p>
-
-</div>
-```
-
+    <div>
+        <span class="eyebrow">ADMINISTRATION</span>
+        <h2>User Management</h2>
+        <p>Approve account requests and manage roles.</p>
+    </div>
 </div>
 
+
+{% if pending_users %}
 <div class="card">
 
-```
-<div class="card-header">
+    <div class="card-header">
+        <div>
+            <h3>Awaiting Approval</h3>
+            <span class="card-subtitle">
+                {{ pending_users|length }} account request{{ pending_users|length|pluralize }}.
+                These people cannot sign in or see resident data until approved.
+            </span>
+        </div>
+    </div>
 
-    <div>
-
-        <h3>
-            Users
-        </h3>
-
-        <span class="card-subtitle">
-            {{ users|length }} user{{ users|length|pluralize }}
-        </span>
-
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Requested</th>
+                    <th>Approve as</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pending in pending_users %}
+                <tr>
+                    <td><strong>{{ pending.get_full_name|default:pending.email }}</strong></td>
+                    <td>{{ pending.email }}</td>
+                    <td>{{ pending.date_joined|date:"d M Y, H:i" }}</td>
+                    <td>
+                        <form method="POST" action="{% url 'user_approve' pending.pk %}" class="inline-form">
+                            {% csrf_token %}
+                            <select name="role" aria-label="Role">
+                                {% for value, label in pending.ROLE_CHOICES %}
+                                <option value="{{ value }}" {% if pending.role == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-primary btn-small">Approve</button>
+                            <a href="{% url 'user_edit' pending.pk %}" class="table-link">Edit</a>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
 </div>
+{% endif %}
 
 
-<div class="table-wrapper">
+<div class="card">
 
-    <table>
+    <div class="card-header">
+        <div>
+            <h3>Users</h3>
+            <span class="card-subtitle">{{ users|length }} user{{ users|length|pluralize }}</span>
+        </div>
+    </div>
 
-        <thead>
-
-            <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th></th>
-            </tr>
-
-        </thead>
-
-
-        <tbody>
-
-            {% for user in users %}
-
-            <tr>
-
-                <td>
-
-                    <strong>
-                        {{ user.get_full_name|default:user.email }}
-                    </strong>
-
-                </td>
-
-
-                <td>
-                    {{ user.email }}
-                </td>
-
-
-                <td>
-                    {{ user.get_role_display }}
-                </td>
-
-
-                <td>
-
-                    {% if user.is_active %}
-
-                        <span class="status-badge status-active">
-                            Active
-                        </span>
-
-                    {% else %}
-
-                        <span class="status-badge status-inactive">
-                            Inactive
-                        </span>
-
-                    {% endif %}
-
-                </td>
-
-
-                <td>
-
-                    <a
-                        href="{% url 'user_edit' user.pk %}"
-                        class="table-link"
-                    >
-                        Edit →
-                    </a>
-
-                </td>
-
-            </tr>
-
-            {% empty %}
-
-            <tr>
-
-                <td colspan="5">
-
-                    <div class="empty-state">
-                        No users found.
-                    </div>
-
-                </td>
-
-            </tr>
-
-            {% endfor %}
-
-        </tbody>
-
-    </table>
-
-</div>
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Last sign-in</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for managed in users %}
+                <tr>
+                    <td><strong>{{ managed.get_full_name|default:managed.email }}</strong></td>
+                    <td>{{ managed.email }}</td>
+                    <td>{{ managed.get_role_display }}</td>
+                    <td>{{ managed.last_login|date:"d M Y, H:i"|default:"Never" }}</td>
+                    <td>
+                        {% if managed.is_active %}
+                        <span class="status-badge status-active">Active</span>
+                        {% else %}
+                        <span class="status-badge status-cancelled">Deactivated</span>
+                        {% endif %}
+                    </td>
+                    <td><a href="{% url 'user_edit' managed.pk %}" class="table-link">Edit →</a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6"><div class="empty-state">No users found.</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
 </div>
 

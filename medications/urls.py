@@ -73,6 +73,12 @@ urlpatterns = [
     ),
 
     path(
+        "mar/resident/<int:resident_pk>/",
+        views.resident_mar,
+        name="resident_mar",
+    ),
+
+    path(
         "due-today/",
         views.medication_due_today,
         name="medication_due_today",

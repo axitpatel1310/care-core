@@ -8,9 +8,15 @@
 
     <div>
 
+        {% if observation %}
+        <a href="{% url 'observation_detail' observation.pk %}" class="back-link">
+            ← Observation set
+        </a>
+        {% else %}
         <a href="{% url 'observation_list' %}" class="back-link">
             ← Observations
         </a>
+        {% endif %}
 
         <h2>{{ title }}</h2>
 

@@ -207,3 +207,50 @@ class ObservationViewTests(TestCase):
         response = self.client.get(reverse("resident_observations", args=[self.resident.pk]))
 
         self.assertContains(response, "news2Chart")
+
+
+class ObservationAmendmentTests(TestCase):
+
+    def setUp(self):
+        self.resident = make_resident()
+        self.observation = Observation.objects.create(resident=self.resident, **{**NORMAL_VITALS, "pulse": 28})
+
+    def amend(self, user, **overrides):
+        self.client.force_login(user)
+        data = {
+            **NORMAL_VITALS,
+            "recorded_at": "2026-01-01T10:00",
+            "spo2_scale": 1,
+            "pulse": 82,
+            "amendment_reason": "Transcription error: pulse was 82, not 28.",
+            **overrides,
+        }
+        data.pop("on_oxygen")
+        return self.client.post(reverse("observation_amend", args=[self.observation.pk]), data)
+
+    def test_rn_amends_with_reason_and_score_is_recalculated(self):
+        from accounts.models import AuditLog
+
+        rn = make_user("rn")
+        self.assertEqual(self.observation.news2_score, 3)
+
+        self.amend(rn)
+
+        self.observation.refresh_from_db()
+        self.assertEqual(self.observation.pulse, 82)
+        self.assertEqual(self.observation.news2_score, 0)
+        self.assertEqual(self.observation.amended_by, rn)
+        self.assertIn("Transcription", self.observation.amendment_reason)
+
+        log = AuditLog.objects.get(action="update", object_type="Observation")
+        self.assertEqual(log.changes["pulse"], [28, 82])
+
+    def test_reason_is_required(self):
+        response = self.amend(make_user("rn"), amendment_reason="")
+        self.assertEqual(response.status_code, 200)
+        self.observation.refresh_from_db()
+        self.assertEqual(self.observation.pulse, 28)
+
+    def test_care_worker_cannot_amend(self):
+        response = self.amend(make_user("care_worker"))
+        self.assertEqual(response.status_code, 403)

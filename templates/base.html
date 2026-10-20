@@ -106,6 +106,12 @@
                 Medications
             </a>
 
+            {% if perms.medications.view_medication %}
+            <a href="{% url 'medication_due_today' %}" class="nav-item">
+                Medication Round
+            </a>
+            {% endif %}
+
             <a href="{% url 'incident_list' %}" class="nav-item">
                 Incidents
             </a>
@@ -194,9 +200,16 @@
 
         </div>
 
-        <a href="{% url 'logout' %}" class="nav-item logout-link">
-            Sign out
+        <a href="{% url 'password_change' %}" class="nav-item">
+            Change password
         </a>
+
+        <form method="POST" action="{% url 'logout' %}" class="logout-form">
+            {% csrf_token %}
+            <button type="submit" class="nav-item logout-link">
+                Sign out
+            </button>
+        </form>
 
         {% endif %}
 

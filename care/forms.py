@@ -1,7 +1,12 @@
 from django import forms
-from .models import CarePlan, Assessment, CognitiveBehaviouralSupport
-from .models import CarePlan,Assessment
-from .models import CarePlan, Assessment, CognitiveBehaviouralSupport, CareTask
+
+from .models import (
+    Assessment,
+    CarePlan,
+    CareTask,
+    CognitiveBehaviouralSupport,
+)
+
 
 class CarePlanForm(forms.ModelForm):
 
@@ -225,7 +230,3 @@ class CareTaskForm(forms.ModelForm):
                 }
             ),
         }
-        
-from django import forms
-
-from .models import CareTask

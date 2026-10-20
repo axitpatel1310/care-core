@@ -1,9 +1,26 @@
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth.decorators import permission_required
-from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib.auth.decorators import (
+    login_required,
+    permission_required,
+)
+from django.shortcuts import redirect, render
 
-from .forms import FacilityForm, WardForm, RoomForm
-from .models import Facility, Ward, Room
+from accounts.scoping import (
+    get_visible_object_or_404,
+    limit_resident_choices,
+    scope_for_model,
+)
+from carecore.pagination import paginate
+
+from .forms import (
+    FacilityForm,
+    RoomForm,
+    WardForm,
+)
+from .models import (
+    Facility,
+    Room,
+    Ward,
+)
 
 
 # =========================================================
@@ -17,15 +34,22 @@ from .models import Facility, Ward, Room
 )
 def facility_list(request):
 
-    facilities = Facility.objects.select_related(
-        "manager"
-    ).all()
+    facilities = scope_for_model(
+        Facility.objects.select_related(
+            "manager"
+        ).all(),
+        request.user,
+    )
+
+    page, filter_query = paginate(request, facilities)
 
     return render(
         request,
         "facility/list.html",
         {
-            "facilities": facilities,
+            "facilities": page,
+            "page": page,
+            "filter_query": filter_query,
         },
     )
 
@@ -40,6 +64,7 @@ def facility_create(request):
     if request.method == "POST":
 
         form = FacilityForm(request.POST)
+        limit_resident_choices(form, request.user)
 
         if form.is_valid():
 
@@ -50,6 +75,7 @@ def facility_create(request):
     else:
 
         form = FacilityForm()
+        limit_resident_choices(form, request.user)
 
     return render(
         request,
@@ -69,7 +95,8 @@ def facility_create(request):
 )
 def facility_detail(request, pk):
 
-    facility = get_object_or_404(
+    facility = get_visible_object_or_404(
+        request.user,
         Facility,
         pk=pk,
     )
@@ -95,7 +122,8 @@ def facility_detail(request, pk):
 )
 def facility_edit(request, pk):
 
-    facility = get_object_or_404(
+    facility = get_visible_object_or_404(
+        request.user,
         Facility,
         pk=pk,
     )
@@ -106,6 +134,7 @@ def facility_edit(request, pk):
             request.POST,
             instance=facility,
         )
+        limit_resident_choices(form, request.user)
 
         if form.is_valid():
 
@@ -121,6 +150,7 @@ def facility_edit(request, pk):
         form = FacilityForm(
             instance=facility,
         )
+        limit_resident_choices(form, request.user)
 
     return render(
         request,
@@ -141,7 +171,8 @@ def facility_edit(request, pk):
 )
 def facility_delete(request, pk):
 
-    facility = get_object_or_404(
+    facility = get_visible_object_or_404(
+        request.user,
         Facility,
         pk=pk,
     )
@@ -176,6 +207,7 @@ def ward_create(request):
     if request.method == "POST":
 
         form = WardForm(request.POST)
+        limit_resident_choices(form, request.user)
 
         if form.is_valid():
 
@@ -189,6 +221,7 @@ def ward_create(request):
     else:
 
         form = WardForm()
+        limit_resident_choices(form, request.user)
 
     return render(
         request,
@@ -208,7 +241,8 @@ def ward_create(request):
 )
 def ward_edit(request, pk):
 
-    ward = get_object_or_404(
+    ward = get_visible_object_or_404(
+        request.user,
         Ward,
         pk=pk,
     )
@@ -219,6 +253,7 @@ def ward_edit(request, pk):
             request.POST,
             instance=ward,
         )
+        limit_resident_choices(form, request.user)
 
         if form.is_valid():
 
@@ -234,6 +269,7 @@ def ward_edit(request, pk):
         form = WardForm(
             instance=ward,
         )
+        limit_resident_choices(form, request.user)
 
     return render(
         request,
@@ -253,7 +289,8 @@ def ward_edit(request, pk):
 )
 def ward_delete(request, pk):
 
-    ward = get_object_or_404(
+    ward = get_visible_object_or_404(
+        request.user,
         Ward,
         pk=pk,
     )
@@ -293,6 +330,7 @@ def room_create(request):
     if request.method == "POST":
 
         form = RoomForm(request.POST)
+        limit_resident_choices(form, request.user)
 
         if form.is_valid():
 
@@ -306,6 +344,7 @@ def room_create(request):
     else:
 
         form = RoomForm()
+        limit_resident_choices(form, request.user)
 
     return render(
         request,
@@ -325,7 +364,8 @@ def room_create(request):
 )
 def room_edit(request, pk):
 
-    room = get_object_or_404(
+    room = get_visible_object_or_404(
+        request.user,
         Room,
         pk=pk,
     )
@@ -336,6 +376,7 @@ def room_edit(request, pk):
             request.POST,
             instance=room,
         )
+        limit_resident_choices(form, request.user)
 
         if form.is_valid():
 
@@ -351,6 +392,7 @@ def room_edit(request, pk):
         form = RoomForm(
             instance=room,
         )
+        limit_resident_choices(form, request.user)
 
     return render(
         request,
@@ -370,7 +412,8 @@ def room_edit(request, pk):
 )
 def room_delete(request, pk):
 
-    room = get_object_or_404(
+    room = get_visible_object_or_404(
+        request.user,
         Room,
         pk=pk,
     )

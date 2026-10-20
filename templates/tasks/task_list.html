@@ -155,7 +155,7 @@ Care Tasks | CareCore
             <h3>Tasks</h3>
 
             <span class="card-subtitle">
-                {{ tasks|length }}
+                {{ page.paginator.count }}
                 task{{ tasks|length|pluralize }}
             </span>
         </div>
@@ -322,5 +322,7 @@ Care Tasks | CareCore
     </div>
 
 </div>
+
+{% include "partials/pagination.html" %}
 
 {% endblock %}

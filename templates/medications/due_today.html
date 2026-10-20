@@ -1,176 +1,134 @@
-```html
 {% extends "base.html" %}
 
-{% block title %}
-Medications Due Today | CareCore
-{% endblock %}
+{% block title %}Medication Round | CareCore{% endblock %}
 
 {% block content %}
 
 <div class="page-header">
-
     <div>
-
-        <span class="eyebrow">
-            MEDICATIONS
-        </span>
-
-        <h2>
-            Medications
-        </h2>
-
-        <p>
-            Active medications for {{ today|date:"l, d F Y" }}.
-        </p>
-
+        <span class="eyebrow">MEDICATIONS</span>
+        <h2>Medication Round</h2>
+        <p>Scheduled doses for {{ day|date:"l, d F Y" }}.</p>
     </div>
 
+    <div class="detail-actions">
+        <a href="?date={{ previous_day|date:'Y-m-d' }}" class="btn btn-secondary">← {{ previous_day|date:"d M" }}</a>
+        {% if not is_today %}<a href="{% url 'medication_due_today' %}" class="btn btn-secondary">Today</a>{% endif %}
+        <a href="?date={{ next_day|date:'Y-m-d' }}" class="btn btn-secondary">{{ next_day|date:"d M" }} →</a>
+    </div>
 </div>
 
 
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-top"><span class="stat-label">Overdue</span><span class="stat-icon danger-icon">!</span></div>
+        <div class="stat-value">{{ counts.overdue|default:0 }}</div>
+        <span class="text-muted">More than an hour late, nothing recorded</span>
+    </div>
+    <div class="stat-card">
+        <div class="stat-top"><span class="stat-label">Due now</span></div>
+        <div class="stat-value">{{ counts.due|default:0 }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-top"><span class="stat-label">Given</span></div>
+        <div class="stat-value">{{ counts.administered|default:0 }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-top"><span class="stat-label">Not given</span></div>
+        <div class="stat-value">{{ counts.not_given }}</div>
+        <span class="text-muted">Refused, missed or withheld</span>
+    </div>
+</div>
+
+
+<div class="tab-nav">
+    <a href="?date={{ day|date:'Y-m-d' }}" class="{% if not state %}active{% endif %}">All doses</a>
+    <a href="?date={{ day|date:'Y-m-d' }}&amp;state=outstanding" class="{% if state == 'outstanding' %}active{% endif %}">Outstanding only</a>
+    <a href="{% url 'administration_list' %}">Administration records</a>
+</div>
+
+
+{% for slot, doses in rounds.items %}
 <div class="card">
 
     <div class="card-header">
-
         <div>
-
-            <h3>
-                Active Medications
-            </h3>
-
-            <span class="card-subtitle">
-                {{ medications|length }}
-                medication{{ medications|length|pluralize }}
-            </span>
-
+            <h3>{{ slot }} round</h3>
+            <span class="card-subtitle">{{ doses|length }} dose{{ doses|length|pluralize }}</span>
         </div>
-
-
-        <a
-            href="{% url 'administration_list' %}"
-            class="table-link"
-        >
-            View MAR
-        </a>
-
     </div>
 
-
     <div class="table-wrapper">
-
         <table>
-
             <thead>
-
                 <tr>
                     <th>Resident</th>
                     <th>Medication</th>
-                    <th>Dose</th>
-                    <th>Route</th>
-                    <th>Frequency</th>
-                    <th>Prescriber</th>
+                    <th>Dose / route</th>
+                    <th>Status</th>
+                    <th>Recorded</th>
                     <th></th>
                 </tr>
-
             </thead>
-
-
             <tbody>
-
-                {% for medication in medications %}
-
-                <tr>
-
+                {% for dose in doses %}
+                <tr class="dose-row dose-row-{{ dose.state }}">
                     <td>
-
-                        <a
-                            href="{% url 'resident_detail' medication.resident.pk %}"
-                        >
-                            <strong>
-                                {{ medication.resident }}
-                            </strong>
-                        </a>
-
+                        <a href="{% url 'resident_mar' dose.medication.resident.pk %}" class="table-link">{{ dose.medication.resident }}</a>
                     </td>
-
-
+                    <td><a href="{% url 'medication_detail' dose.medication.pk %}" class="table-link">{{ dose.medication.name }}</a></td>
+                    <td>{{ dose.medication.dose }} · {{ dose.medication.route }}</td>
+                    <td><span class="dose-badge dose-{{ dose.state }}">{{ dose.state_label }}</span></td>
                     <td>
-                        {{ medication.name }}
+                        {% if dose.administration %}
+                        {{ dose.administration.administered_at|date:"H:i" }} by {{ dose.administration.administered_by|default:"—" }}
+                        {% else %}—{% endif %}
                     </td>
-
-
                     <td>
-                        {{ medication.dose }}
-                    </td>
-
-
-                    <td>
-                        {{ medication.route }}
-                    </td>
-
-
-                    <td>
-                        {{ medication.frequency }}
-                    </td>
-
-
-                    <td>
-
-                        {% if medication.prescriber %}
-                            {{ medication.prescriber }}
-                        {% else %}
-                            —
+                        {% if dose.administration %}
+                        <a href="{% url 'administration_detail' dose.administration.pk %}" class="table-link">View</a>
+                        {% elif perms.medications.add_medicationadministration %}
+                        <a href="{% url 'administration_create' dose.medication.pk %}?scheduled_for={{ dose.scheduled_for|date:'c' }}&amp;return_to=round" class="btn btn-primary btn-small">Record</a>
                         {% endif %}
-
                     </td>
-
-
-                    <td>
-
-                        <a
-                            href="{% url 'administration_create' medication.pk %}"
-                            class="btn btn-primary btn-small"
-                        >
-                            Administer
-                        </a>
-
-                    </td>
-
                 </tr>
-
-
-                {% empty %}
-
-                <tr>
-
-                    <td colspan="7">
-
-                        <div class="empty-state">
-
-                            <strong>
-                                No active medications
-                            </strong>
-
-                            <p>
-                                There are currently no active medications
-                                available for administration.
-                            </p>
-
-                        </div>
-
-                    </td>
-
-                </tr>
-
                 {% endfor %}
-
             </tbody>
-
         </table>
-
     </div>
 
 </div>
+{% empty %}
+<div class="card">
+    <div class="empty-state">
+        {% if state == "outstanding" %}No outstanding doses.{% else %}No scheduled doses on this day.{% endif %}
+    </div>
+</div>
+{% endfor %}
+
+
+{% if prn_medications %}
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h3>As-required (PRN) medicines</h3>
+            <span class="card-subtitle">Record when given; these have no scheduled times</span>
+        </div>
+    </div>
+    <div class="list">
+        {% for medication in prn_medications %}
+        <div class="list-item">
+            <div class="list-content">
+                <strong>{{ medication.resident }} – {{ medication.name }}</strong>
+                <span>{{ medication.dose }} · {{ medication.route }} · {{ medication.frequency }}</span>
+            </div>
+            {% if perms.medications.add_medicationadministration %}
+            <a href="{% url 'administration_create' medication.pk %}?return_to=round" class="btn btn-secondary btn-small">Record PRN</a>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
 
 {% endblock %}
-```

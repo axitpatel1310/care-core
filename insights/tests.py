@@ -275,3 +275,21 @@ class InsightsViewTests(TestCase):
 
         self.assertContains(handover, str(self.resident))
         self.assertContains(register, str(self.resident))
+
+
+class RiskQueryCountTests(TestCase):
+    """The register must not issue queries per resident."""
+
+    def test_query_count_is_independent_of_resident_count(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        from .risk import assess_residents
+
+        def queries_for(count):
+            residents = [make_resident(first_name=f"R{count}-{i}") for i in range(count)]
+            with CaptureQueriesContext(connection) as captured:
+                assess_residents(residents)
+            return len(captured)
+
+        self.assertEqual(queries_for(1), queries_for(8))

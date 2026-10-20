@@ -6,12 +6,17 @@ every contributing factor, so staff can see *why* a resident is flagged
 rather than trusting an opaque number.
 """
 
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from datetime import timedelta
 
+from django.db.models import Count
 from django.utils import timezone
 
+from care.models import Assessment, CarePlan, CareTask
+from incidents.models import Incident
 from medications.models import MedicationAdministration
+from observations.models import Observation
 from observations.news2 import (
     RISK_HIGH,
     RISK_LOW_MEDIUM,
@@ -81,17 +86,99 @@ def band_for_score(score):
     return BAND_LOW
 
 
-def assess_resident(resident, now=None):
+class _Signals:
+    """
+    All the data the score needs for a set of residents, fetched with a
+    fixed number of grouped queries rather than several queries per resident.
+    """
 
-    now = now or timezone.now()
-    today = timezone.localdate(now)
+    def __init__(self, resident_ids, now):
+
+        today = timezone.localdate(now)
+
+        self.latest_obs = {}
+
+        for observation in (
+            Observation.objects
+            .filter(
+                resident_id__in=resident_ids,
+                recorded_at__gte=now - timedelta(hours=NEWS2_LOOKBACK_HOURS),
+            )
+            .order_by("resident_id", "-recorded_at")
+        ):
+            self.latest_obs.setdefault(observation.resident_id, observation)
+
+        incidents = Incident.objects.filter(resident_id__in=resident_ids)
+
+        self.falls = self._count(
+            incidents.filter(
+                category="fall",
+                incident_date__gte=now - timedelta(days=FALLS_LOOKBACK_DAYS),
+            ),
+            "resident_id",
+        )
+
+        self.serious = self._count(
+            incidents.filter(
+                severity__in=["high", "critical"],
+                incident_date__gte=now - timedelta(days=INCIDENT_LOOKBACK_DAYS),
+            ).exclude(category="fall"),
+            "resident_id",
+        )
+
+        self.doses = defaultdict(Counter)
+
+        for row in (
+            MedicationAdministration.objects
+            .filter(
+                medication__resident_id__in=resident_ids,
+                administered_at__gte=now - timedelta(days=MEDICATION_LOOKBACK_DAYS),
+            )
+            .values("medication__resident_id", "status")
+            .annotate(total=Count("id"))
+        ):
+            self.doses[row["medication__resident_id"]][row["status"]] += row["total"]
+
+        self.overdue_tasks = self._count(
+            CareTask.objects.filter(
+                resident_id__in=resident_ids,
+                status__in=["pending", "in_progress"],
+                due_date__lt=today,
+            ),
+            "resident_id",
+        )
+
+        self.active_plan = {}
+
+        for plan in (
+            CarePlan.objects
+            .filter(resident_id__in=resident_ids, status="active")
+            .order_by("resident_id", "-created_at")
+            .only("resident_id", "next_review", "created_at")
+        ):
+            self.active_plan.setdefault(plan.resident_id, plan)
+
+        self.overdue_assessments = self._count(
+            Assessment.objects.filter(
+                resident_id__in=resident_ids,
+                next_review__lt=today,
+            ),
+            "resident_id",
+        )
+
+    @staticmethod
+    def _count(queryset, key):
+        return dict(
+            queryset.values(key).annotate(total=Count("id")).values_list(key, "total")
+        )
+
+
+def _score(resident, signals, today):
 
     risk = ResidentRisk(resident=resident)
 
     # 1. Latest NEWS2 within the lookback window.
-    latest_obs = resident.observations.filter(
-        recorded_at__gte=now - timedelta(hours=NEWS2_LOOKBACK_HOURS),
-    ).order_by("-recorded_at").first()
+    latest_obs = signals.latest_obs.get(resident.pk)
 
     if latest_obs:
         points = NEWS2_POINTS.get(latest_obs.risk_level)
@@ -107,10 +194,7 @@ def assess_resident(resident, now=None):
         )
 
     # 2. Falls history.
-    falls = resident.incidents.filter(
-        category="fall",
-        incident_date__gte=now - timedelta(days=FALLS_LOOKBACK_DAYS),
-    ).count()
+    falls = signals.falls.get(resident.pk, 0)
 
     risk.add(
         "Falls history",
@@ -119,10 +203,7 @@ def assess_resident(resident, now=None):
     )
 
     # 3. Recent serious incidents (excluding falls, already counted).
-    serious = resident.incidents.filter(
-        severity__in=["high", "critical"],
-        incident_date__gte=now - timedelta(days=INCIDENT_LOOKBACK_DAYS),
-    ).exclude(category="fall").count()
+    serious = signals.serious.get(resident.pk, 0)
 
     risk.add(
         "Serious incidents",
@@ -132,32 +213,22 @@ def assess_resident(resident, now=None):
     )
 
     # 4. Medication non-adherence.
-    administrations = list(
-        MedicationAdministration.objects.filter(
-            medication__resident=resident,
-            administered_at__gte=now - timedelta(days=MEDICATION_LOOKBACK_DAYS),
-        ).values_list("status", flat=True)
-    )
+    doses = signals.doses.get(resident.pk)
 
-    if administrations:
-        not_given = sum(
-            1 for status in administrations
-            if status in ("missed", "refused", "withheld")
-        )
-        ratio = not_given / len(administrations)
+    if doses:
+        total = sum(doses.values())
+        not_given = sum(doses[status] for status in ("missed", "refused", "withheld"))
+        ratio = not_given / total
 
         risk.add(
             "Medication adherence",
             round(ratio * 20),
-            f"{not_given} of {len(administrations)} doses not given "
+            f"{not_given} of {total} doses not given "
             f"({round((1 - ratio) * 100)}% adherence)",
         )
 
     # 5. Overdue care tasks.
-    overdue_tasks = resident.care_tasks.filter(
-        status__in=["pending", "in_progress"],
-        due_date__lt=today,
-    ).count()
+    overdue_tasks = signals.overdue_tasks.get(resident.pk, 0)
 
     risk.add(
         "Overdue care tasks",
@@ -173,7 +244,7 @@ def assess_resident(resident, now=None):
     )
 
     # 7. Governance gaps: overdue reviews.
-    active_plan = resident.care_plans.filter(status="active").order_by("-created_at").first()
+    active_plan = signals.active_plan.get(resident.pk)
 
     if active_plan is None:
         risk.add("Care plan", 5, "No active care plan")
@@ -184,9 +255,7 @@ def assess_resident(resident, now=None):
             f"Review overdue since {active_plan.next_review:%d %b %Y}",
         )
 
-    overdue_assessments = resident.assessments.filter(
-        next_review__lt=today,
-    ).count()
+    overdue_assessments = signals.overdue_assessments.get(resident.pk, 0)
 
     risk.add(
         "Assessments",
@@ -200,14 +269,19 @@ def assess_resident(resident, now=None):
 
 
 def assess_residents(residents, now=None):
+    """Score many residents with a constant number of queries, highest risk first."""
 
     now = now or timezone.now()
+    residents = list(residents)
 
-    assessments = [
-        assess_resident(resident, now=now)
-        for resident in residents
-    ]
+    signals = _Signals([resident.pk for resident in residents], now)
+    today = timezone.localdate(now)
 
+    assessments = [_score(resident, signals, today) for resident in residents]
     assessments.sort(key=lambda item: item.score, reverse=True)
 
     return assessments
+
+
+def assess_resident(resident, now=None):
+    return assess_residents([resident], now=now)[0]

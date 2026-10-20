@@ -1,10 +1,21 @@
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib.auth.decorators import (
+    login_required,
+    permission_required,
+)
 from django.db.models import Q
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import redirect, render
+
+from accounts.scoping import (
+    get_visible_object_or_404,
+    limit_resident_choices,
+    scope_for_model,
+)
+from carecore.pagination import paginate
 
 from .forms import AppointmentForm
 from .models import Appointment
+
 
 @login_required
 @permission_required(
@@ -13,17 +24,20 @@ from .models import Appointment
 )
 def appointment_list(request):
 
-    appointments = (
-        Appointment.objects
-        .select_related(
-            "resident",
-            "assigned_staff",
-            "assigned_staff__user",
-        )
-        .order_by(
-            "appointment_date",
-            "start_time",
-        )
+    appointments = scope_for_model(
+        (
+            Appointment.objects
+            .select_related(
+                "resident",
+                "assigned_staff",
+                "assigned_staff__user",
+            )
+            .order_by(
+                "appointment_date",
+                "start_time",
+            )
+        ),
+        request.user,
     )
 
     query = request.GET.get("q", "").strip()
@@ -62,11 +76,15 @@ def appointment_list(request):
             appointment_type=appointment_type
         )
 
+    page, filter_query = paginate(request, appointments)
+
     return render(
         request,
         "appointments/appointment_list.html",
         {
-            "appointments": appointments,
+            "appointments": page,
+            "page": page,
+            "filter_query": filter_query,
             "query": query,
             "status": status,
             "appointment_type": appointment_type,
@@ -92,6 +110,7 @@ def appointment_create(request):
     if request.method == "POST":
 
         form = AppointmentForm(request.POST)
+        limit_resident_choices(form, request.user)
 
         if form.is_valid():
 
@@ -112,6 +131,7 @@ def appointment_create(request):
         form = AppointmentForm(
             initial=initial
         )
+        limit_resident_choices(form, request.user)
 
     return render(
         request,
@@ -130,7 +150,8 @@ def appointment_create(request):
 )
 def appointment_detail(request, pk):
 
-    appointment = get_object_or_404(
+    appointment = get_visible_object_or_404(
+        request.user,
         Appointment.objects.select_related(
             "resident",
             "assigned_staff",
@@ -154,7 +175,8 @@ def appointment_detail(request, pk):
 )
 def appointment_edit(request, pk):
 
-    appointment = get_object_or_404(
+    appointment = get_visible_object_or_404(
+        request.user,
         Appointment,
         pk=pk,
     )
@@ -165,6 +187,7 @@ def appointment_edit(request, pk):
             request.POST,
             instance=appointment,
         )
+        limit_resident_choices(form, request.user)
 
         if form.is_valid():
 
@@ -185,6 +208,7 @@ def appointment_edit(request, pk):
         form = AppointmentForm(
             instance=appointment,
         )
+        limit_resident_choices(form, request.user)
 
     return render(
         request,
@@ -204,7 +228,8 @@ def appointment_edit(request, pk):
 )
 def appointment_delete(request, pk):
 
-    appointment = get_object_or_404(
+    appointment = get_visible_object_or_404(
+        request.user,
         Appointment,
         pk=pk,
     )

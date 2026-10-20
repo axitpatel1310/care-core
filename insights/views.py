@@ -13,6 +13,7 @@ from django.shortcuts import render
 from django.utils import timezone
 
 from accounts.audit import create_audit_log
+from accounts.scoping import scope_for_model
 from appointments.models import Appointment
 from care.models import CareTask
 from facility.models import Ward
@@ -24,7 +25,7 @@ from residents.models import Resident
 from . import analytics
 from .alerts import CRITICAL, INFO, SEVERITY_LABELS, WARNING, alerts_for
 from .context_processors import alert_cache_key
-from .risk import assess_resident, assess_residents
+from .risk import assess_residents
 
 
 ANALYTICS_ROLES = ("admin", "manager", "rn")
@@ -48,6 +49,15 @@ def analytics_access_required(view_func):
         return view_func(request, *args, **kwargs)
 
     return login_required(wrapper)
+
+
+def user_scope(user):
+    """A function limiting querysets to the facilities `user` may see."""
+
+    def scope(queryset):
+        return scope_for_model(queryset, user)
+
+    return scope
 
 
 def selected_period(request, default=90):
@@ -110,7 +120,9 @@ def alert_centre(request):
 )
 def risk_register(request):
 
-    residents = Resident.objects.filter(status="active").select_related("room")
+    residents = scope_for_model(Resident.objects.all(), request.user).filter(
+        status="active",
+    ).select_related("room")
 
     ward = request.GET.get("ward", "")
 
@@ -131,7 +143,7 @@ def risk_register(request):
             "assessments": assessments,
             "band": band,
             "ward": ward,
-            "wards": Ward.objects.select_related("facility"),
+            "wards": scope_for_model(Ward.objects.select_related("facility"), request.user),
         },
     )
 
@@ -141,13 +153,14 @@ def analytics_dashboard(request):
 
     days = selected_period(request)
     start, end = analytics.period_bounds(days)
+    scope = user_scope(request.user)
 
     chart_data = {
-        "incidents_by_month": analytics.incidents_by_month(start, end),
-        "incidents_by_category": analytics.incidents_by_category(start, end),
-        "adherence": analytics.medication_adherence_by_week(start, end),
-        "news2": analytics.latest_news2_distribution(),
-        "care_levels": analytics.residents_by_care_level(),
+        "incidents_by_month": analytics.incidents_by_month(start, end, scope),
+        "incidents_by_category": analytics.incidents_by_category(start, end, scope),
+        "adherence": analytics.medication_adherence_by_week(start, end, scope),
+        "news2": analytics.latest_news2_distribution(scope),
+        "care_levels": analytics.residents_by_care_level(scope),
     }
 
     return render(
@@ -156,7 +169,7 @@ def analytics_dashboard(request):
         {
             "days": days,
             "period_choices": PERIOD_CHOICES,
-            "kpis": analytics.kpis(start, end),
+            "kpis": analytics.kpis(start, end, scope),
             "chart_data": chart_data,
             "start": start,
             "end": end,
@@ -164,7 +177,7 @@ def analytics_dashboard(request):
     )
 
 
-def _export_incidents(start, end):
+def _export_incidents(start, end, scope):
 
     yield [
         "ID", "Date", "Resident", "Category", "Severity", "Status",
@@ -172,7 +185,7 @@ def _export_incidents(start, end):
     ]
 
     for incident in (
-        Incident.objects
+        scope(Incident.objects.all())
         .filter(incident_date__range=(start, end))
         .select_related("resident", "reported_by__user")
         .order_by("incident_date")
@@ -191,12 +204,12 @@ def _export_incidents(start, end):
         ]
 
 
-def _export_medications(start, end):
+def _export_medications(start, end, scope):
 
     yield ["Date", "Resident", "Medication", "Dose", "Route", "Status", "Staff", "Notes"]
 
     for administration in (
-        MedicationAdministration.objects
+        scope(MedicationAdministration.objects.all())
         .filter(administered_at__range=(start, end))
         .select_related("medication__resident", "administered_by__user")
         .order_by("administered_at")
@@ -214,7 +227,7 @@ def _export_medications(start, end):
         ]
 
 
-def _export_observations(start, end):
+def _export_observations(start, end, scope):
 
     yield [
         "Recorded", "Resident", "NEWS2", "Risk", "Resp. rate", "SpO2", "SpO2 scale",
@@ -222,7 +235,7 @@ def _export_observations(start, end):
     ]
 
     for obs in (
-        Observation.objects
+        scope(Observation.objects.all())
         .filter(recorded_at__range=(start, end))
         .select_related("resident", "recorded_by__user")
         .order_by("recorded_at")
@@ -245,12 +258,12 @@ def _export_observations(start, end):
         ]
 
 
-def _export_tasks(start, end):
+def _export_tasks(start, end, scope):
 
     yield ["Due date", "Due time", "Resident", "Task", "Type", "Priority", "Status", "Assigned to", "Completed at"]
 
     for task in (
-        CareTask.objects
+        scope(CareTask.objects.all())
         .filter(due_date__range=(timezone.localdate(start), timezone.localdate(end)))
         .select_related("resident", "assigned_to__user")
         .order_by("due_date", "due_time")
@@ -297,7 +310,7 @@ def export_csv(request, dataset):
 
     writer = csv.writer(response)
 
-    for row in rows(start, end):
+    for row in rows(start, end, user_scope(request.user)):
         writer.writerow([_safe_cell(value) for value in row])
 
     create_audit_log(
@@ -340,7 +353,7 @@ def shift_handover(request):
     today = timezone.localdate(now)
 
     residents = (
-        Resident.objects
+        scope_for_model(Resident.objects.all(), request.user)
         .filter(status="active")
         .select_related("room__ward")
         .order_by("room__ward__name", "room__room_number", "last_name")
@@ -351,11 +364,16 @@ def shift_handover(request):
     if ward:
         residents = residents.filter(room__ward_id=ward)
 
+    risks = {
+        risk.resident.pk: risk
+        for risk in assess_residents(residents, now=now)
+    }
+
     entries = []
 
     for resident in residents:
 
-        risk = assess_resident(resident, now=now)
+        risk = risks[resident.pk]
 
         entries.append({
             "resident": resident,
@@ -391,6 +409,6 @@ def shift_handover(request):
             "since": since,
             "generated_at": now,
             "ward": ward,
-            "wards": Ward.objects.select_related("facility"),
+            "wards": scope_for_model(Ward.objects.select_related("facility"), request.user),
         },
     )
