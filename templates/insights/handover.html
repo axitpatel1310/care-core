@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Shift Handover | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">SHIFT HANDOVER</span>
+        <h2>Shift Handover Report</h2>
+        <p>
+            Activity since {{ since|date:"d M Y, H:i" }} · generated {{ generated_at|date:"d M Y, H:i" }}
+            by {{ user.get_full_name|default:user.username }}
+        </p>
+    </div>
+
+    <div class="detail-actions no-print">
+        <button type="button" class="btn btn-primary" onclick="window.print()">Print</button>
+    </div>
+</div>
+
+
+<div class="card no-print">
+    <form method="GET" class="filter-form">
+        <div class="form-group">
+            <label for="hours">Covering the last</label>
+            <select id="hours" name="hours">
+                <option value="8" {% if hours == 8 %}selected{% endif %}>8 hours</option>
+                <option value="12" {% if hours == 12 %}selected{% endif %}>12 hours</option>
+                <option value="24" {% if hours == 24 %}selected{% endif %}>24 hours</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="ward">Ward</label>
+            <select id="ward" name="ward">
+                <option value="">All wards</option>
+                {% for w in wards %}
+                <option value="{{ w.pk }}" {% if ward == w.pk|stringformat:"s" %}selected{% endif %}>{{ w }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-secondary">Update</button>
+        </div>
+    </form>
+</div>
+
+
+{% for entry in entries %}
+<div class="card handover-card">
+
+    <div class="card-header">
+        <div>
+            <h3>
+                <a href="{% url 'resident_detail' entry.resident.pk %}" class="table-link">{{ entry.resident }}</a>
+            </h3>
+            <span class="card-subtitle">
+                {% if entry.resident.room %}{{ entry.resident.room.ward.name }} · Room {{ entry.resident.room }}{% else %}No room{% endif %}
+                · {{ entry.resident.get_care_level_display }} care
+            </span>
+        </div>
+        <div>
+            {% if entry.latest_obs %}
+            <span class="news2-score news2-{{ entry.latest_obs.risk_level }}" title="Latest NEWS2">{{ entry.latest_obs.news2_score }}</span>
+            {% endif %}
+            <span class="risk-badge band-{{ entry.risk.band }}">Risk {{ entry.risk.score }}</span>
+        </div>
+    </div>
+
+    <div class="handover-grid">
+
+        <div>
+            <h4>Observations</h4>
+            {% if entry.latest_obs %}
+            <p>
+                Latest {{ entry.latest_obs.recorded_at|date:"d M H:i" }}:
+                RR {{ entry.latest_obs.respiratory_rate }}, SpO₂ {{ entry.latest_obs.spo2 }}%,
+                BP {{ entry.latest_obs.systolic_bp }}{% if entry.latest_obs.diastolic_bp %}/{{ entry.latest_obs.diastolic_bp }}{% endif %},
+                P {{ entry.latest_obs.pulse }}, T {{ entry.latest_obs.temperature }}°, {{ entry.latest_obs.get_consciousness_display }}
+            </p>
+            {% else %}
+            <p class="text-muted">No observations on record.</p>
+            {% endif %}
+            <p class="text-muted">{{ entry.obs_count }} set{{ entry.obs_count|pluralize }} this period</p>
+        </div>
+
+        <div>
+            <h4>Medication</h4>
+            {% for administration in entry.doses_not_given %}
+            <p>{{ administration.medication.name }} – <strong>{{ administration.get_status_display }}</strong> {{ administration.administered_at|date:"H:i" }}</p>
+            {% empty %}
+            <p class="text-muted">No missed, refused or withheld doses.</p>
+            {% endfor %}
+        </div>
+
+        <div>
+            <h4>Incidents</h4>
+            {% for incident in entry.incidents %}
+            <p>{{ incident.get_category_display }} ({{ incident.get_severity_display }}) – {{ incident.get_status_display }}</p>
+            {% empty %}
+            <p class="text-muted">None this period.</p>
+            {% endfor %}
+        </div>
+
+        <div>
+            <h4>Outstanding tasks</h4>
+            {% for task in entry.outstanding_tasks %}
+            <p>{{ task.title }} <span class="priority-badge priority-{{ task.priority }}">{{ task.get_priority_display }}</span></p>
+            {% empty %}
+            <p class="text-muted">All tasks complete.</p>
+            {% endfor %}
+        </div>
+
+        <div>
+            <h4>Appointments (today / tomorrow)</h4>
+            {% for appointment in entry.appointments %}
+            <p>{{ appointment.appointment_date|date:"D" }} {{ appointment.start_time|time:"H:i" }} – {{ appointment.title }}</p>
+            {% empty %}
+            <p class="text-muted">None scheduled.</p>
+            {% endfor %}
+        </div>
+
+        <div>
+            <h4>Key risk factors</h4>
+            {% for factor in entry.risk.factors|slice:":3" %}
+            <p>{{ factor.label }}: {{ factor.detail }}</p>
+            {% empty %}
+            <p class="text-muted">None identified.</p>
+            {% endfor %}
+        </div>
+
+    </div>
+
+</div>
+{% empty %}
+<div class="card"><div class="empty-state">No active residents.</div></div>
+{% endfor %}
+
+{% endblock %}

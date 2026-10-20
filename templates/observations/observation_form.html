@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <a href="{% url 'observation_list' %}" class="back-link">
+            ← Observations
+        </a>
+
+        <h2>{{ title }}</h2>
+
+        <p>
+            The NEWS2 score and clinical response are calculated automatically when you save.
+            Medium and high scores create an urgent follow-up care task.
+        </p>
+
+    </div>
+
+</div>
+
+
+<div class="card form-card">
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+        {% include "partials/form_fields.html" %}
+
+        <div class="news2-preview" id="news2-preview" hidden>
+            Estimated NEWS2: <strong id="news2-preview-score">–</strong>
+            <span id="news2-preview-risk" class="risk-badge"></span>
+        </div>
+
+        <div class="form-actions">
+
+            <a href="{% url 'observation_list' %}" class="btn btn-secondary">
+                Cancel
+            </a>
+
+            <button type="submit" class="btn btn-primary">
+                {{ button_text }}
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+// Live preview mirroring observations/news2.py; the server-side score is authoritative.
+(function () {
+    const form = document.querySelector("form");
+    const preview = document.getElementById("news2-preview");
+    const scoreEl = document.getElementById("news2-preview-score");
+    const riskEl = document.getElementById("news2-preview-risk");
+
+    const val = (name) => {
+        const el = form.elements[name];
+        if (!el) return null;
+        if (el.type === "checkbox") return el.checked;
+        return el.value === "" ? null : Number(el.value);
+    };
+
+    const band = (v, rules) => {
+        for (const [max, score] of rules) if (v <= max) return score;
+        return rules[rules.length - 1][1];
+    };
+
+    function spo2Score(spo2, onO2, scale) {
+        if (scale === 2) {
+            if (spo2 <= 83) return 3;
+            if (spo2 <= 85) return 2;
+            if (spo2 <= 87) return 1;
+            if (spo2 <= 92 || !onO2) return 0;
+            if (spo2 <= 94) return 1;
+            if (spo2 <= 96) return 2;
+            return 3;
+        }
+        return band(spo2, [[91, 3], [93, 2], [95, 1], [Infinity, 0]]);
+    }
+
+    function update() {
+        const rr = val("respiratory_rate"), spo2 = val("spo2"), sbp = val("systolic_bp"),
+              pulse = val("pulse"), temp = val("temperature");
+        if ([rr, spo2, sbp, pulse, temp].some((v) => v === null)) { preview.hidden = true; return; }
+
+        const onO2 = val("on_oxygen");
+        const consciousness = form.elements["consciousness"].value;
+        const scores = [
+            band(rr, [[8, 3], [11, 1], [20, 0], [24, 2], [Infinity, 3]]),
+            spo2Score(spo2, onO2, val("spo2_scale")),
+            onO2 ? 2 : 0,
+            band(sbp, [[90, 3], [100, 2], [110, 1], [219, 0], [Infinity, 3]]),
+            band(pulse, [[40, 3], [50, 1], [90, 0], [110, 1], [130, 2], [Infinity, 3]]),
+            consciousness === "A" ? 0 : 3,
+            band(temp, [[35.0, 3], [36.0, 1], [38.0, 0], [39.0, 1], [Infinity, 2]]),
+        ];
+        const total = scores.reduce((a, b) => a + b, 0);
+        const red = scores.includes(3);
+        const [risk, label] = total >= 7 ? ["high", "High"] : total >= 5 ? ["medium", "Medium"]
+            : red ? ["low_medium", "Low–Medium"] : ["low", "Low"];
+
+        scoreEl.textContent = total;
+        riskEl.className = "risk-badge risk-" + risk;
+        riskEl.textContent = label + " risk";
+        preview.hidden = false;
+    }
+
+    form.addEventListener("input", update);
+    form.addEventListener("change", update);
+    update();
+})();
+</script>
+{% endblock %}

@@ -30,6 +30,7 @@ class AuditLog(models.Model):
         ("delete", "Deleted"),
         ("login", "Logged In"),
         ("logout", "Logged Out"),
+        ("login_failed", "Failed Login"),
         ("other", "Other"),
     ]
 
@@ -61,6 +62,11 @@ class AuditLog(models.Model):
     )
 
     description = models.TextField()
+
+    changes = models.JSONField(
+        default=dict,
+        blank=True,
+    )
 
     timestamp = models.DateTimeField(
         auto_now_add=True,

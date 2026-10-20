@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}{{ risk.description }} | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <a href="{% url 'risk_list' %}" class="back-link">← Risk Register</a>
+        <h2>{{ risk.description }}</h2>
+        <p>{{ risk.get_category_display }} risk · {{ risk.get_status_display }}</p>
+    </div>
+    <div class="detail-actions">
+        {% if perms.compliance.change_risk %}
+        <a href="{% url 'risk_edit' risk.pk %}" class="btn btn-secondary">Edit</a>
+        {% endif %}
+        {% if perms.compliance.delete_risk %}
+        <a href="{% url 'risk_delete' risk.pk %}" class="btn btn-danger">Delete</a>
+        {% endif %}
+    </div>
+</div>
+
+
+<div class="card">
+    <div class="info-grid">
+        <div><span>Likelihood</span><strong>{{ risk.get_likelihood_display }}</strong></div>
+        <div><span>Impact</span><strong>{{ risk.get_impact_display }}</strong></div>
+        <div><span>Risk score</span><strong>{{ risk.risk_score }} / 25</strong></div>
+        <div><span>Severity</span><strong><span class="severity-badge severity-{{ risk.severity }}">{{ risk.get_severity_display }}</span></strong></div>
+        <div><span>Owner</span><strong>{{ risk.owner|default:"Unassigned" }}</strong></div>
+        <div><span>Review date</span><strong>{{ risk.review_date|date:"d M Y"|default:"Not scheduled" }}</strong></div>
+        <div><span>Recorded</span><strong>{{ risk.created_at|date:"d M Y" }}</strong></div>
+    </div>
+
+    <div class="card-section">
+        <h3>Mitigation</h3>
+        <p class="{% if not risk.mitigation %}text-muted{% endif %}">{{ risk.mitigation|default:"No mitigation recorded."|linebreaksbr }}</p>
+    </div>
+</div>
+
+{% endblock %}

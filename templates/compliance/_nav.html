@@ -1,0 +1,15 @@
+<div class="tab-nav">
+    <a href="{% url 'compliance_dashboard' %}" class="{% if request.resolver_match.url_name == 'compliance_dashboard' %}active{% endif %}">Overview</a>
+    {% if perms.compliance.view_risk %}
+    <a href="{% url 'risk_list' %}" class="{% if 'risk' in request.resolver_match.url_name %}active{% endif %}">Risk Register</a>
+    {% endif %}
+    {% if perms.compliance.view_compliancedocument %}
+    <a href="{% url 'document_list' %}" class="{% if 'document' in request.resolver_match.url_name %}active{% endif %}">Policies</a>
+    {% endif %}
+    {% if perms.compliance.view_audit %}
+    <a href="{% url 'audit_list' %}" class="{% if 'audit' in request.resolver_match.url_name or 'control' in request.resolver_match.url_name %}active{% endif %}">Audits</a>
+    {% endif %}
+    {% if perms.compliance.view_correctiveaction %}
+    <a href="{% url 'action_list' %}" class="{% if 'action' in request.resolver_match.url_name %}active{% endif %}">Corrective Actions</a>
+    {% endif %}
+</div>

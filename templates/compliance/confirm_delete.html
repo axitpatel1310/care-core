@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Delete {{ verbose_name }} | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <a href="{% url 'compliance_dashboard' %}" class="back-link">← Compliance</a>
+        <h2>Delete {{ verbose_name }}</h2>
+    </div>
+</div>
+
+
+<div class="card form-card">
+
+    <div class="danger-box">
+        <h3>Are you sure?</h3>
+        <p>You are about to permanently delete <strong>{{ object }}</strong>.</p>
+    </div>
+
+    <form method="POST">
+        {% csrf_token %}
+        <div class="form-actions">
+            <a href="javascript:history.back()" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-danger">Delete</button>
+        </div>
+    </form>
+
+</div>
+
+{% endblock %}

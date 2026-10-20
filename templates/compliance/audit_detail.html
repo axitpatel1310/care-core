@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}{{ audit.title }} | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <a href="{% url 'audit_list' %}" class="back-link">← Audits</a>
+        <h2>{{ audit.title }}</h2>
+        <p>
+            {{ audit.get_status_display }} · started {{ audit.start_date|date:"d M Y" }}
+            {% if audit.completion_date %} · completed {{ audit.completion_date|date:"d M Y" }}{% endif %}
+        </p>
+    </div>
+    <div class="detail-actions">
+        {% if perms.compliance.change_audit %}
+        <a href="{% url 'audit_edit' audit.pk %}" class="btn btn-secondary">Edit</a>
+        {% endif %}
+        {% if perms.compliance.delete_audit %}
+        <a href="{% url 'audit_delete' audit.pk %}" class="btn btn-danger">Delete</a>
+        {% endif %}
+    </div>
+</div>
+
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-top"><span class="stat-label">Compliance score</span></div>
+        <div class="stat-value">{% if audit.compliance_score is not None %}{{ audit.compliance_score }}%{% else %}—{% endif %}</div>
+        <span class="text-muted">Passed = 1, partial = ½, failed = 0</span>
+    </div>
+    <div class="stat-card">
+        <div class="stat-top"><span class="stat-label">Passed</span></div>
+        <div class="stat-value">{{ result_counts.passed }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-top"><span class="stat-label">Partial / failed</span></div>
+        <div class="stat-value">{{ result_counts.partial }} / {{ result_counts.failed }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-top"><span class="stat-label">Pending</span></div>
+        <div class="stat-value">{{ result_counts.pending }}</div>
+    </div>
+</div>
+
+{% if audit.description %}
+<div class="card">
+    <div class="card-section">
+        <h3>Scope</h3>
+        <p>{{ audit.description|linebreaksbr }}</p>
+    </div>
+</div>
+{% endif %}
+
+
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h3>Controls</h3>
+            <span class="card-subtitle">Requirements assessed in this audit</span>
+        </div>
+    </div>
+
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Requirement</th>
+                    <th>Result</th>
+                    <th>Evidence / finding</th>
+                    <th>Actions</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for control in controls %}
+                <tr>
+                    <td>{{ control.requirement }}</td>
+                    <td><span class="status-badge status-{{ control.result }}">{{ control.get_result_display }}</span></td>
+                    <td>
+                        {{ control.evidence|default:"" }}
+                        {% if control.finding %}<br><small class="text-muted">Finding: {{ control.finding }}</small>{% endif %}
+                    </td>
+                    <td>
+                        {% for action in control.corrective_actions.all %}
+                        <a href="{% url 'corrective_action_detail' action.pk %}" class="table-link">{{ action.title }}</a><br>
+                        {% empty %}
+                        {% if control.result == "failed" or control.result == "partial" %}
+                            {% if perms.compliance.add_correctiveaction %}
+                            <a href="{% url 'action_create' %}?finding={{ control.pk }}" class="btn btn-small btn-primary">Raise action</a>
+                            {% endif %}
+                        {% else %}—{% endif %}
+                        {% endfor %}
+                    </td>
+                    <td>
+                        {% if perms.compliance.change_auditcontrol %}
+                        <a href="{% url 'control_edit' control.pk %}" class="table-link">Edit</a>
+                        {% endif %}
+                        {% if perms.compliance.delete_auditcontrol %}
+                        · <a href="{% url 'control_delete' control.pk %}" class="table-link">Delete</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5"><div class="empty-state">No controls added yet.</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+{% if perms.compliance.add_auditcontrol %}
+<div class="card form-card">
+    <div class="card-header">
+        <div><h3>Add Control</h3></div>
+    </div>
+    <form method="POST" action="{% url 'control_create' audit.pk %}">
+        {% csrf_token %}
+        {% include "partials/form_fields.html" with form=control_form %}
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Add Control</button>
+        </div>
+    </form>
+</div>
+{% endif %}
+
+{% endblock %}

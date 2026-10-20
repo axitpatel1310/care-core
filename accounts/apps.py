@@ -8,7 +8,11 @@ class AccountsConfig(AppConfig):
 
     def ready(self):
 
-        from . import signals
+        from django.apps import apps
+
+        from . import audit_trail, signals
+
+        audit_trail.connect(apps)
 
         # Runs after every app has migrated, so all permissions exist.
         post_migrate.connect(

@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Resident Risk Register | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">CLINICAL SAFETY</span>
+        <h2>Resident Risk Register</h2>
+        <p>
+            A composite 0–100 score combining the latest NEWS2, falls, serious incidents,
+            medication adherence, overdue tasks, care complexity and overdue reviews.
+        </p>
+    </div>
+</div>
+
+
+<div class="card">
+    <form method="GET" class="filter-form">
+        <div class="form-group">
+            <label for="band">Risk band</label>
+            <select id="band" name="band">
+                <option value="">All bands</option>
+                <option value="high" {% if band == "high" %}selected{% endif %}>High (60+)</option>
+                <option value="moderate" {% if band == "moderate" %}selected{% endif %}>Moderate (30–59)</option>
+                <option value="low" {% if band == "low" %}selected{% endif %}>Low (0–29)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="ward">Ward</label>
+            <select id="ward" name="ward">
+                <option value="">All wards</option>
+                {% for w in wards %}
+                <option value="{{ w.pk }}" {% if ward == w.pk|stringformat:"s" %}selected{% endif %}>{{ w }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-secondary">Filter</button>
+            <a href="{% url 'resident_risk_register' %}" class="btn btn-secondary">Clear</a>
+        </div>
+    </form>
+</div>
+
+
+<div class="card">
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Resident</th>
+                    <th>Room</th>
+                    <th>Score</th>
+                    <th>Band</th>
+                    <th>Contributing factors</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for risk in assessments %}
+                <tr>
+                    <td><a href="{% url 'resident_detail' risk.resident.pk %}" class="table-link">{{ risk.resident }}</a></td>
+                    <td>{{ risk.resident.room|default:"—" }}</td>
+                    <td>
+                        <strong>{{ risk.score }}</strong>
+                        <div class="progress"><div class="progress-bar risk-bar-{{ risk.band }}" style="width: {{ risk.score }}%"></div></div>
+                    </td>
+                    <td><span class="risk-badge band-{{ risk.band }}">{{ risk.get_band_display }}</span></td>
+                    <td>{% include "insights/_risk_factors.html" %}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5"><div class="empty-state">No active residents match these filters.</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

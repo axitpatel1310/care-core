@@ -8,6 +8,8 @@ from .forms import UserRoleForm
 from .models import User
 from .models import User
 from .audit import create_audit_log
+from django.core.paginator import Paginator
+from django.db.models import Q
 
 def login_view(request):
     if request.user.is_authenticated:
@@ -182,10 +184,45 @@ def audit_log(request):
         .order_by("-timestamp")
     )
 
+    action = request.GET.get("action", "")
+    module = request.GET.get("module", "")
+    query = request.GET.get("q", "").strip()
+
+    if action:
+        logs = logs.filter(action=action)
+
+    if module:
+        logs = logs.filter(module=module)
+
+    if query:
+        logs = logs.filter(
+            Q(description__icontains=query)
+            | Q(user__email__icontains=query)
+            | Q(user__first_name__icontains=query)
+            | Q(user__last_name__icontains=query)
+        )
+
+    page = Paginator(logs, 50).get_page(request.GET.get("page"))
+
+    filters = request.GET.copy()
+    filters.pop("page", None)
+
     return render(
         request,
         "accounts/audit_log.html",
         {
-            "logs": logs,
+            "logs": page,
+            "page": page,
+            "action": action,
+            "module": module,
+            "query": query,
+            "filter_query": filters.urlencode(),
+            "action_choices": AuditLog.ACTION_CHOICES,
+            "modules": (
+                AuditLog.objects
+                .order_by("module")
+                .values_list("module", flat=True)
+                .distinct()
+            ),
         },
     )

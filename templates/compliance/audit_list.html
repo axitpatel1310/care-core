@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Audits | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">GOVERNANCE</span>
+        <h2>Audits</h2>
+        <p>Internal audits, their controls and the resulting compliance score.</p>
+    </div>
+    {% if perms.compliance.add_audit %}
+    <a href="{% url 'audit_create' %}" class="btn btn-primary">+ New Audit</a>
+    {% endif %}
+</div>
+
+{% include "compliance/_nav.html" %}
+
+
+<div class="card">
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Audit</th>
+                    <th>Started</th>
+                    <th>Status</th>
+                    <th>Controls</th>
+                    <th>Failed</th>
+                    <th>Compliance</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for audit in audits %}
+                <tr>
+                    <td><a href="{% url 'audit_detail' audit.pk %}" class="table-link">{{ audit.title }}</a></td>
+                    <td>{{ audit.start_date|date:"d M Y" }}</td>
+                    <td><span class="status-badge status-{{ audit.status }}">{{ audit.get_status_display }}</span></td>
+                    <td>{{ audit.controls.all|length }}</td>
+                    <td>{{ audit.failed }}</td>
+                    <td>{% if audit.compliance_score is not None %}<strong>{{ audit.compliance_score }}%</strong>{% else %}—{% endif %}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6"><div class="empty-state">No audits recorded.</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

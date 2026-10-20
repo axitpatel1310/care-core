@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Corrective Actions | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">GOVERNANCE</span>
+        <h2>Corrective Actions</h2>
+        <p>Improvement actions raised from audit findings and incidents.</p>
+    </div>
+    {% if perms.compliance.add_correctiveaction %}
+    <a href="{% url 'action_create' %}" class="btn btn-primary">+ Raise Action</a>
+    {% endif %}
+</div>
+
+{% include "compliance/_nav.html" %}
+
+
+<div class="card">
+    <form method="GET" class="filter-form">
+        <div class="form-group">
+            <label for="status">Status</label>
+            <select id="status" name="status">
+                <option value="">All statuses</option>
+                {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-secondary">Filter</button>
+            <a href="{% url 'action_list' %}" class="btn btn-secondary">Clear</a>
+        </div>
+    </form>
+</div>
+
+
+<div class="card">
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Action</th>
+                    <th>Source</th>
+                    <th>Owner</th>
+                    <th>Priority</th>
+                    <th>Due</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for action in actions %}
+                <tr>
+                    <td><a href="{% url 'corrective_action_detail' action.pk %}" class="table-link">{{ action.title }}</a></td>
+                    <td>
+                        {% if action.source_finding %}Audit: {{ action.source_finding.audit.title }}
+                        {% elif action.source_incident %}Incident #{{ action.source_incident.pk }}
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>{{ action.owner|default:"—" }}</td>
+                    <td><span class="priority-badge priority-{{ action.priority }}">{{ action.get_priority_display }}</span></td>
+                    <td>
+                        {{ action.due_date|date:"d M Y" }}
+                        {% if action.is_overdue %}<span class="risk-badge risk-high">Overdue</span>{% endif %}
+                    </td>
+                    <td><span class="status-badge status-{{ action.status }}">{{ action.get_status_display }}</span></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6"><div class="empty-state">No corrective actions.</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

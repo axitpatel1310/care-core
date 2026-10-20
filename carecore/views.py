@@ -6,6 +6,9 @@ from residents.models import Resident
 from staff.models import StaffMember
 from appointments.models import Appointment
 from incidents.models import Incident
+from care.models import CareTask
+from insights.alerts import CRITICAL, WARNING, alerts_for
+from insights.risk import BAND_HIGH, assess_residents
 
 @login_required
 def dashboard(request):
@@ -42,8 +45,35 @@ def dashboard(request):
         "resident",
     )
 
+    alerts = alerts_for(request.user)
+
+    risk_assessments = []
+
+    if request.user.has_perm("residents.view_resident"):
+        risk_assessments = assess_residents(
+            Resident.objects.filter(status="active").select_related("room")
+        )
+
     context = {
         "today": today,
+
+        "priority_alerts": [
+            alert for alert in alerts
+            if alert.severity in (CRITICAL, WARNING)
+        ][:6],
+
+        "alerts_count": len(alerts),
+
+        "residents_at_risk": risk_assessments[:5],
+
+        "high_risk_count": sum(
+            1 for item in risk_assessments if item.band == BAND_HIGH
+        ),
+
+        "overdue_tasks_count": CareTask.objects.filter(
+            status__in=["pending", "in_progress"],
+            due_date__lt=today,
+        ).count(),
 
         "residents_count": residents_count,
 

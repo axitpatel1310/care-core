@@ -5,6 +5,7 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from .models import Resident, ResidentContact
 from care.models import CarePlan
+from insights.risk import assess_resident
 from .forms import ResidentForm
 from .models import Resident
 from django.contrib import messages
@@ -145,6 +146,8 @@ def resident_detail(request, pk):
             "medications": resident.medications.all(),
             "incidents": resident.incidents.all(),
             "appointments": resident.appointments.all(),
+            "risk": assess_resident(resident),
+            "latest_observation": resident.observations.order_by("-recorded_at").first(),
         },
     )
     

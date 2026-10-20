@@ -18,6 +18,12 @@ ROLE_PERMISSIONS = {
     },
 
     "Manager": {
+        "compliance.compliancedocument": ["view", "add", "change", "delete"],
+        "compliance.risk": ["view", "add", "change", "delete"],
+        "compliance.audit": ["view", "add", "change", "delete"],
+        "compliance.auditcontrol": ["view", "add", "change", "delete"],
+        "compliance.correctiveaction": ["view", "add", "change", "delete"],
+        "observations.observation": ["view", "add", "change", "delete"],
         "residents.resident": ["view", "add", "change", "delete"],
         "residents.residentcontact": ["view", "add", "change", "delete"],
 
@@ -42,6 +48,12 @@ ROLE_PERMISSIONS = {
     },
 
     "RN": {
+        "compliance.compliancedocument": ["view"],
+        "compliance.risk": ["view", "add"],
+        "compliance.audit": ["view"],
+        "compliance.auditcontrol": ["view"],
+        "compliance.correctiveaction": ["view", "add", "change"],
+        "observations.observation": ["view", "add", "change"],
         "residents.resident": ["view", "add", "change"],
         "residents.residentcontact": ["view", "add", "change"],
         "care.careplan": ["view", "add", "change"],
@@ -57,6 +69,9 @@ ROLE_PERMISSIONS = {
     },
 
     "EN": {
+        "compliance.compliancedocument": ["view"],
+        "compliance.correctiveaction": ["view"],
+        "observations.observation": ["view", "add"],
         "residents.resident": ["view", "change"],
         "residents.residentcontact": ["view", "add", "change"],
         "care.careplan": ["view", "add", "change"],
@@ -72,6 +87,8 @@ ROLE_PERMISSIONS = {
     },
 
     "Personal Care Worker": {
+        "compliance.compliancedocument": ["view"],
+        "observations.observation": ["view", "add"],
         "residents.resident": ["view"],
         "residents.residentcontact": ["view"],
         "care.careplan": ["view"],

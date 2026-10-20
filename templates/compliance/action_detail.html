@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}{{ action.title }} | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <a href="{% url 'action_list' %}" class="back-link">← Corrective Actions</a>
+        <h2>{{ action.title }}</h2>
+        <p>
+            {{ action.get_status_display }} · {{ action.get_priority_display }} priority
+            {% if action.is_overdue %}<span class="risk-badge risk-high">Overdue</span>{% endif %}
+        </p>
+    </div>
+    <div class="detail-actions">
+        {% if perms.compliance.change_correctiveaction %}
+        <a href="{% url 'action_edit' action.pk %}" class="btn btn-secondary">Edit</a>
+        {% endif %}
+        {% if perms.compliance.delete_correctiveaction %}
+        <a href="{% url 'action_delete' action.pk %}" class="btn btn-danger">Delete</a>
+        {% endif %}
+    </div>
+</div>
+
+
+<div class="card">
+    <div class="info-grid">
+        <div><span>Owner</span><strong>{{ action.owner|default:"Unassigned" }}</strong></div>
+        <div><span>Due date</span><strong>{{ action.due_date|date:"d M Y" }}</strong></div>
+        <div><span>Completed</span><strong>{{ action.completed_at|date:"d M Y, H:i"|default:"—" }}</strong></div>
+        <div><span>Verified</span><strong>{{ action.verified_at|date:"d M Y, H:i"|default:"—" }}</strong></div>
+        <div>
+            <span>Source</span>
+            <strong>
+                {% if action.source_finding %}
+                <a href="{% url 'audit_detail' action.source_finding.audit_id %}" class="table-link">Audit: {{ action.source_finding.audit.title }}</a>
+                {% elif action.source_incident %}
+                <a href="{% url 'incident_detail' action.source_incident.pk %}" class="table-link">{{ action.source_incident }}</a>
+                {% else %}—{% endif %}
+            </strong>
+        </div>
+    </div>
+
+    <div class="card-section">
+        <h3>Description</h3>
+        <p class="{% if not action.description %}text-muted{% endif %}">{{ action.description|default:"No description."|linebreaksbr }}</p>
+    </div>
+</div>
+
+{% endblock %}

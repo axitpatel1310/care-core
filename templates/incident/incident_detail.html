@@ -30,6 +30,15 @@ Incident #{{ incident.id }} | CareCore
 
     <div class="detail-actions">
 
+        {% if perms.compliance.add_correctiveaction %}
+        <a
+            href="{% url 'action_create' %}?incident={{ incident.pk }}"
+            class="btn btn-secondary"
+        >
+            Raise Corrective Action
+        </a>
+        {% endif %}
+
         {% if incident.status != "resolved" %}
 
         {% if perms.incidents.change_incident %}
@@ -269,5 +278,29 @@ Incident #{{ incident.id }} | CareCore
     </div>
 
 </div>
+
+{% if perms.compliance.view_correctiveaction and incident.corrective_actions.exists %}
+<div class="card">
+
+    <div class="card-header">
+        <div>
+            <h3>Linked Corrective Actions</h3>
+        </div>
+    </div>
+
+    <div class="list">
+        {% for action in incident.corrective_actions.all %}
+        <div class="list-item">
+            <div class="list-content">
+                <strong><a href="{% url 'corrective_action_detail' action.pk %}" class="table-link">{{ action.title }}</a></strong>
+                <span>Due {{ action.due_date|date:"d M Y" }} · {{ action.get_status_display }}</span>
+            </div>
+            <span class="priority-badge priority-{{ action.priority }}">{{ action.get_priority_display }}</span>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+{% endif %}
 
 {% endblock %}

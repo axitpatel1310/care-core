@@ -64,8 +64,125 @@ Dashboard | CareCore
     </div>
 
 
+    <div class="stat-card">
+
+        <span class="stat-label">
+            Active Alerts
+        </span>
+
+        <strong class="stat-number">
+            {{ alerts_count }}
+        </strong>
+
+        <a href="{% url 'alert_centre' %}">
+            Alert centre →
+        </a>
+
+    </div>
+
+
+    {% if perms.residents.view_resident %}
+    <div class="stat-card">
+
+        <span class="stat-label">
+            High-Risk Residents
+        </span>
+
+        <strong class="stat-number">
+            {{ high_risk_count }}
+        </strong>
+
+        <a href="{% url 'resident_risk_register' %}?band=high">
+            Risk register →
+        </a>
+
+    </div>
+    {% endif %}
+
+
+    <div class="stat-card">
+
+        <span class="stat-label">
+            Overdue Care Tasks
+        </span>
+
+        <strong class="stat-number">
+            {{ overdue_tasks_count }}
+        </strong>
+
+        {% if perms.care.view_caretask %}
+        <a href="{% url 'task_list' %}">
+            View tasks →
+        </a>
+        {% endif %}
+
+    </div>
+
+
 
     
+</div>
+
+
+<!-- CLINICAL SAFETY -->
+
+<div class="resident-dashboard-grid">
+
+    <div class="card">
+
+        <div class="card-header">
+            <div>
+                <h3>Priority Alerts</h3>
+                <span class="card-subtitle">Critical and warning alerts for your role</span>
+            </div>
+            <a href="{% url 'alert_centre' %}" class="table-link">View all →</a>
+        </div>
+
+        <div class="list">
+            {% for alert in priority_alerts %}
+            <div class="list-item alert-item alert-{{ alert.severity }}">
+                <span class="alert-severity alert-severity-{{ alert.severity }}">{{ alert.severity_label }}</span>
+                <div class="list-content">
+                    <strong>{% if alert.url %}<a href="{{ alert.url }}" class="table-link">{{ alert.title }}</a>{% else %}{{ alert.title }}{% endif %}</strong>
+                    <span>{{ alert.message }}</span>
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state">No critical or warning alerts.</div>
+            {% endfor %}
+        </div>
+
+    </div>
+
+
+    {% if perms.residents.view_resident %}
+    <div class="card">
+
+        <div class="card-header">
+            <div>
+                <h3>Residents Needing Attention</h3>
+                <span class="card-subtitle">Highest composite risk scores</span>
+            </div>
+            <a href="{% url 'resident_risk_register' %}" class="table-link">Risk register →</a>
+        </div>
+
+        <div class="list">
+            {% for risk in residents_at_risk %}
+            <div class="list-item">
+                <div class="list-content">
+                    <strong><a href="{% url 'resident_detail' risk.resident.pk %}" class="table-link">{{ risk.resident }}</a></strong>
+                    <span>{% for factor in risk.factors|slice:":2" %}{{ factor.detail }}{% if not forloop.last %} · {% endif %}{% empty %}No risk factors{% endfor %}</span>
+                </div>
+                <span class="risk-badge band-{{ risk.band }}">{{ risk.score }}</span>
+            </div>
+            {% empty %}
+            <div class="empty-state">No active residents.</div>
+            {% endfor %}
+        </div>
+
+    </div>
+    {% endif %}
+
 </div>
 
 

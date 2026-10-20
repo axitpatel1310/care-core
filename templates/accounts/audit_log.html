@@ -1,102 +1,107 @@
 {% extends "base.html" %}
 
-{% block title %}
-Audit Log | CareCore
-{% endblock %}
+{% block title %}Audit Log | CareCore{% endblock %}
 
 {% block content %}
 
 <div class="page-header">
-
-<div>
-
-    <span class="eyebrow">
-        ADMINISTRATION
-    </span>
-
-    <h2>
-        Audit Log
-    </h2>
-
-    <p>
-        System activity and user actions.
-    </p>
-
+    <div>
+        <span class="eyebrow">ADMINISTRATION</span>
+        <h2>Audit Log</h2>
+        <p>Every change to clinical and governance records, sign-ins and data exports.</p>
+    </div>
 </div>
-```
 
-</div>
 
 <div class="card">
-
-```
-<div class="table-wrapper">
-
-    <table>
-
-        <thead>
-
-            <tr>
-                <th>Date & Time</th>
-                <th>User</th>
-                <th>Action</th>
-                <th>Module</th>
-                <th>Description</th>
-            </tr>
-
-        </thead>
-
-
-        <tbody>
-
-            {% for log in logs %}
-
-            <tr>
-
-                <td>
-                    {{ log.timestamp|date:"d M Y H:i:s" }}
-                </td>
-
-                <td>
-                    {{ log.user|default:"System" }}
-                </td>
-
-                <td>
-                    {{ log.get_action_display }}
-                </td>
-
-                <td>
-                    {{ log.module }}
-                </td>
-
-                <td>
-                    {{ log.description }}
-                </td>
-
-            </tr>
-
-            {% empty %}
-
-            <tr>
-
-                <td colspan="5">
-
-                    <div class="empty-state">
-                        No audit activity recorded yet.
-                    </div>
-
-                </td>
-
-            </tr>
-
-            {% endfor %}
-
-        </tbody>
-
-    </table>
-
+    <form method="GET" class="filter-form">
+        <div class="form-group">
+            <label for="q">Search</label>
+            <input id="q" type="text" name="q" value="{{ query }}" placeholder="User or description...">
+        </div>
+        <div class="form-group">
+            <label for="action">Action</label>
+            <select id="action" name="action">
+                <option value="">All actions</option>
+                {% for value, label in action_choices %}
+                <option value="{{ value }}" {% if action == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="module">Module</label>
+            <select id="module" name="module">
+                <option value="">All modules</option>
+                {% for value in modules %}
+                <option value="{{ value }}" {% if module == value %}selected{% endif %}>{{ value|capfirst }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-secondary">Filter</button>
+            <a href="{% url 'audit_log' %}" class="btn btn-secondary">Clear</a>
+        </div>
+    </form>
 </div>
 
+
+<div class="card">
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date &amp; Time</th>
+                    <th>User</th>
+                    <th>Action</th>
+                    <th>Module</th>
+                    <th>Description</th>
+                    <th>IP</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log.timestamp|date:"d M Y H:i:s" }}</td>
+                    <td>{{ log.user|default:"System" }}</td>
+                    <td><span class="status-badge audit-{{ log.action }}">{{ log.get_action_display }}</span></td>
+                    <td>{{ log.module|capfirst }}</td>
+                    <td>
+                        {{ log.description }}
+                        {% if log.changes %}
+                        <details class="audit-changes">
+                            <summary>{{ log.changes|length }} field{{ log.changes|length|pluralize }} changed</summary>
+                            <table>
+                                {% for field, values in log.changes.items %}
+                                <tr>
+                                    <th>{{ field }}</th>
+                                    <td><del>{{ values.0|default_if_none:"—" }}</del></td>
+                                    <td>→ {{ values.1|default_if_none:"—" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </table>
+                        </details>
+                        {% endif %}
+                    </td>
+                    <td class="text-muted">{{ log.ip_address|default:"" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6"><div class="empty-state">No audit activity matches these filters.</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if page.paginator.num_pages > 1 %}
+    <div class="pagination">
+        {% if page.has_previous %}
+        <a class="btn btn-secondary btn-small" href="?{{ filter_query }}&page={{ page.previous_page_number }}">← Newer</a>
+        {% endif %}
+        <span class="text-muted">Page {{ page.number }} of {{ page.paginator.num_pages }} · {{ page.paginator.count }} entries</span>
+        {% if page.has_next %}
+        <a class="btn btn-secondary btn-small" href="?{{ filter_query }}&page={{ page.next_page_number }}">Older →</a>
+        {% endif %}
+    </div>
+    {% endif %}
 </div>
 
 {% endblock %}

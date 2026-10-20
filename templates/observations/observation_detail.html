@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}NEWS2 {{ observation.news2_score }} – {{ observation.resident }} | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <a href="{% url 'resident_observations' observation.resident.pk %}" class="back-link">
+            ← {{ observation.resident }} observations
+        </a>
+
+        <h2>Observation Set</h2>
+
+        <p>
+            {{ observation.recorded_at|date:"D d M Y, H:i" }}
+            · recorded by {{ observation.recorded_by|default:"unknown staff" }}
+        </p>
+
+    </div>
+
+    <div class="detail-actions">
+        {% if perms.observations.delete_observation %}
+        <a href="{% url 'observation_delete' observation.pk %}" class="btn btn-danger">
+            Delete
+        </a>
+        {% endif %}
+    </div>
+
+</div>
+
+
+<div class="news2-banner news2-banner-{{ observation.risk_level }}">
+
+    <div class="news2-banner-score">
+        <span>NEWS2</span>
+        <strong>{{ observation.news2_score }}</strong>
+    </div>
+
+    <div>
+        <h3>{{ observation.get_risk_level_display }} clinical risk</h3>
+        <p>{{ result.response }}</p>
+
+        {% if observation.escalation_task %}
+        <p>
+            Escalation task:
+            <a href="{% url 'task_detail' observation.escalation_task.pk %}" class="table-link">
+                {{ observation.escalation_task.title }}
+            </a>
+            ({{ observation.escalation_task.get_status_display }})
+        </p>
+        {% endif %}
+    </div>
+
+</div>
+
+
+<div class="resident-dashboard-grid">
+
+    <div class="card">
+
+        <div class="card-header">
+            <div>
+                <h3>Vital Signs</h3>
+            </div>
+        </div>
+
+        <div class="info-grid">
+            <div><span>Respiration rate</span><strong>{{ observation.respiratory_rate }} /min</strong></div>
+            <div>
+                <span>SpO₂ (scale {{ observation.spo2_scale }})</span>
+                <strong>{{ observation.spo2 }}% {% if observation.on_oxygen %}on O₂{% else %}on air{% endif %}</strong>
+            </div>
+            <div>
+                <span>Blood pressure</span>
+                <strong>{{ observation.systolic_bp }}{% if observation.diastolic_bp %}/{{ observation.diastolic_bp }}{% endif %} mmHg</strong>
+            </div>
+            <div><span>Pulse</span><strong>{{ observation.pulse }} bpm</strong></div>
+            <div><span>Consciousness</span><strong>{{ observation.get_consciousness_display }}</strong></div>
+            <div><span>Temperature</span><strong>{{ observation.temperature }} °C</strong></div>
+            <div><span>Blood glucose</span><strong>{{ observation.blood_glucose|default:"—" }}{% if observation.blood_glucose %} mmol/L{% endif %}</strong></div>
+            <div><span>Pain score</span><strong>{{ observation.pain_score|default_if_none:"—" }}{% if observation.pain_score is not None %}/10{% endif %}</strong></div>
+        </div>
+
+        {% if observation.notes %}
+        <div class="card-section">
+            <h3>Notes</h3>
+            <p>{{ observation.notes|linebreaksbr }}</p>
+        </div>
+        {% endif %}
+
+    </div>
+
+
+    <div class="card">
+
+        <div class="card-header">
+            <div>
+                <h3>Score Breakdown</h3>
+                <span class="card-subtitle">Each parameter scores 0–3</span>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="compact-table">
+                <thead>
+                    <tr><th>Parameter</th><th>Score</th></tr>
+                </thead>
+                <tbody>
+                    {% for label, score in breakdown %}
+                    <tr>
+                        <td>{{ label }}</td>
+                        <td><span class="news2-cell news2-cell-{{ score }}">{{ score }}</span></td>
+                    </tr>
+                    {% endfor %}
+                    <tr>
+                        <td><strong>Total</strong></td>
+                        <td><strong>{{ observation.news2_score }}</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

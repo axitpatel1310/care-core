@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Policies & Documents | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">GOVERNANCE</span>
+        <h2>Policies &amp; Documents</h2>
+        <p>Controlled documents with version and review tracking.</p>
+    </div>
+    {% if perms.compliance.add_compliancedocument %}
+    <a href="{% url 'document_create' %}" class="btn btn-primary">+ Add Document</a>
+    {% endif %}
+</div>
+
+{% include "compliance/_nav.html" %}
+
+
+<div class="card">
+    <form method="GET" class="filter-form">
+        <div class="form-group">
+            <label for="q">Search</label>
+            <input id="q" type="text" name="q" value="{{ query }}" placeholder="Document title...">
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-secondary">Search</button>
+            <a href="{% url 'document_list' %}" class="btn btn-secondary">Clear</a>
+        </div>
+    </form>
+</div>
+
+
+<div class="card">
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Type</th>
+                    <th>Version</th>
+                    <th>Owner</th>
+                    <th>Next review</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for document in documents %}
+                <tr>
+                    <td><a href="{% url 'document_detail' document.pk %}" class="table-link">{{ document.title }}</a></td>
+                    <td>{{ document.get_document_type_display }}</td>
+                    <td>{{ document.version }}</td>
+                    <td>{{ document.owner|default:"—" }}</td>
+                    <td>
+                        {{ document.next_review|date:"d M Y"|default:"—" }}
+                        {% if document.next_review and document.next_review < today and document.status == "active" %}
+                        <span class="risk-badge risk-high">Overdue</span>
+                        {% endif %}
+                    </td>
+                    <td><span class="status-badge status-{{ document.status }}">{{ document.get_status_display }}</span></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6"><div class="empty-state">No documents found.</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,11 @@
+<ul class="risk-factors">
+    {% for factor in risk.factors %}
+    <li>
+        <span class="risk-factor-points">+{{ factor.points }}</span>
+        <strong>{{ factor.label }}</strong>
+        <span class="text-muted">{{ factor.detail }}</span>
+    </li>
+    {% empty %}
+    <li class="text-muted">No risk factors identified.</li>
+    {% endfor %}
+</ul>

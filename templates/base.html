@@ -10,7 +10,8 @@
 
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js 4.4.1 is vendored so charts work without internet access. -->
+    <script src="{% static 'vendor/chart-4.4.1.umd.js' %}"></script>
 
     {% block extra_css %}{% endblock %}
 </head>
@@ -45,6 +46,32 @@
 
 
         <div class="nav-section">
+            <span class="nav-label">Clinical Safety</span>
+
+            <a href="{% url 'alert_centre' %}" class="nav-item">
+                Alert Centre
+                {% if alert_summary.total %}<span class="nav-count">{{ alert_summary.total }}</span>{% endif %}
+            </a>
+
+            {% if perms.residents.view_resident %}
+            <a href="{% url 'resident_risk_register' %}" class="nav-item">
+                Risk Register
+            </a>
+
+            <a href="{% url 'shift_handover' %}" class="nav-item">
+                Shift Handover
+            </a>
+            {% endif %}
+
+            {% if user.is_superuser or user.role == "admin" or user.role == "manager" or user.role == "rn" %}
+            <a href="{% url 'analytics_dashboard' %}" class="nav-item">
+                Analytics
+            </a>
+            {% endif %}
+        </div>
+
+
+        <div class="nav-section">
             <span class="nav-label">Resident Care</span>
 
             <a href="{% url 'resident_list' %}" class="nav-item">
@@ -66,6 +93,12 @@
             {% if perms.care.view_cognitivebehaviouralsupport %}
             <a href="{% url 'behavioural_support_list' %}" class="nav-item">
                 Behavioural Support
+            </a>
+            {% endif %}
+
+            {% if perms.observations.view_observation %}
+            <a href="{% url 'observation_list' %}" class="nav-item">
+                Observations
             </a>
             {% endif %}
 
@@ -190,10 +223,21 @@
 
             <div class="topbar-right">
 
-                <button class="notification-button">
+                {% if user.is_authenticated %}
+                <a
+                    href="{% url 'alert_centre' %}"
+                    class="notification-button"
+                    title="{{ alert_summary.total|default:0 }} active alert{{ alert_summary.total|pluralize }}"
+                    aria-label="Alerts"
+                >
                     ♢
-                    <span class="notification-dot"></span>
-                </button>
+                    {% if alert_summary.total %}
+                    <span class="notification-count {% if alert_summary.critical %}critical{% endif %}">
+                        {{ alert_summary.total }}
+                    </span>
+                    {% endif %}
+                </a>
+                {% endif %}
 
                 <div class="topbar-date">
                     {{ today|date:"d M Y" }}

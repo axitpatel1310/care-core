@@ -1,3 +1,4 @@
+import random
 from datetime import date, time, timedelta
 
 from django.core.management.base import BaseCommand
@@ -19,6 +20,15 @@ from medications.models import (
 )
 from incidents.models import Incident
 from appointments.models import Appointment
+from observations.models import Observation
+from observations.services import escalate_if_required
+from compliance.models import (
+    Audit,
+    AuditControl,
+    ComplianceDocument,
+    CorrectiveAction,
+    Risk,
+)
 
 
 User = get_user_model()
@@ -480,8 +490,271 @@ class Command(BaseCommand):
             },
         )
 
+        # ==================================================
+        # CLINICAL HISTORY & GOVERNANCE
+        # ==================================================
+
+        resident3, _ = Resident.objects.get_or_create(
+            first_name="Dorothy",
+            last_name="Evans",
+            defaults={
+                "date_of_birth": date(1935, 1, 27),
+                "gender": "female",
+                "room": room102,
+                "admission_date": today - timedelta(days=400),
+                "status": "active",
+                "care_level": "complex",
+                "mobility_needs": "Hoist transfers, two staff.",
+                "nutrition_needs": "Thickened fluids (level 2).",
+                "communication_needs": "Hearing aids, left ear.",
+                "cognitive_support_needs": "Moderate dementia.",
+            },
+        )
+
+        ResidentStaffAssignment.objects.get_or_create(
+            staff=rn_staff,
+            resident=resident3,
+            role="nurse",
+            defaults={"start_date": today - timedelta(days=90)},
+        )
+
+        if not Observation.objects.exists():
+            self.seed_observations(
+                [resident1, resident2, resident3],
+                rn_staff,
+                now,
+            )
+
+        if Incident.objects.count() < 5:
+            self.seed_incident_history(
+                [resident1, resident2, resident3],
+                care_staff,
+                now,
+            )
+
+        if MedicationAdministration.objects.count() < 10:
+            self.seed_medication_history(
+                [resident1, resident2, resident3],
+                [rn_staff, care_staff],
+                today,
+                now,
+            )
+
+        if not Risk.objects.exists():
+            self.seed_compliance(
+                manager,
+                rn_staff,
+                today,
+            )
+
         self.stdout.write(
             self.style.SUCCESS(
                 "CareCore demo data created successfully."
             )
+        )
+
+    def seed_observations(self, residents, staff, now):
+
+        rng = random.Random(42)
+        stable, improving, deteriorating = residents
+
+        # (resident, hours ago, rr, spo2, sbp, pulse, temp, consciousness, on_oxygen)
+        profiles = []
+
+        for hours_ago in range(96, -1, -12):
+            profiles.append((stable, hours_ago, 16, 97, 128, 74, "36.8", "A", False))
+
+        for step, hours_ago in enumerate(range(72, -1, -8)):
+            profiles.append((
+                improving, hours_ago, 22 - step, 93 + min(step, 4),
+                104 + step * 3, 102 - step * 3, "38.2" if step < 3 else "37.1", "A", False,
+            ))
+
+        for step, hours_ago in enumerate(range(48, 0, -6)):
+            profiles.append((
+                deteriorating, hours_ago, 18 + step, 96 - step,
+                122 - step * 4, 84 + step * 5, str(37.0 + step * 0.25),
+                "A" if step < 6 else "C", step >= 5,
+            ))
+
+        for resident, hours_ago, rr, spo2, sbp, pulse, temp, acvpu, oxygen in profiles:
+
+            observation = Observation.objects.create(
+                resident=resident,
+                recorded_by=staff,
+                recorded_at=now - timedelta(hours=hours_ago, minutes=rng.randint(0, 40)),
+                respiratory_rate=rr,
+                spo2=min(spo2, 100),
+                on_oxygen=oxygen,
+                systolic_bp=sbp,
+                diastolic_bp=sbp - rng.randint(40, 55),
+                pulse=pulse,
+                consciousness=acvpu,
+                temperature=temp,
+            )
+
+            if hours_ago <= 6:
+                escalate_if_required(observation)
+
+    def seed_incident_history(self, residents, staff, now):
+
+        rng = random.Random(7)
+
+        categories = ["fall", "fall", "medication_error", "behavioural", "injury", "environmental"]
+        severities = ["low", "low", "medium", "medium", "high", "critical"]
+
+        for _ in range(28):
+
+            occurred = now - timedelta(days=rng.randint(2, 330), hours=rng.randint(0, 23))
+            resolved = rng.random() < 0.85
+
+            Incident.objects.create(
+                resident=rng.choice(residents),
+                reported_by=staff,
+                incident_date=occurred,
+                category=rng.choice(categories),
+                severity=rng.choice(severities),
+                description="Demo incident generated for analytics.",
+                immediate_action="Resident checked and made safe.",
+                status="resolved" if resolved else "investigating",
+                resolved_at=occurred + timedelta(hours=rng.randint(2, 96)) if resolved else None,
+            )
+
+        Incident.objects.create(
+            resident=residents[2],
+            reported_by=staff,
+            incident_date=now - timedelta(hours=5),
+            category="fall",
+            severity="high",
+            description="Found on floor beside bed during night check.",
+            immediate_action="Post-fall observations commenced; GP informed.",
+            status="open",
+        )
+
+    def seed_medication_history(self, residents, staff, today, now):
+
+        rng = random.Random(11)
+
+        catalogue = [
+            ("Amlodipine", "5 mg", "Oral", "Once daily"),
+            ("Metformin", "500 mg", "Oral", "Twice daily"),
+            ("Donepezil", "10 mg", "Oral", "Once daily at night"),
+        ]
+
+        for resident, (name, dose, route, frequency) in zip(residents, catalogue):
+
+            medication, _ = Medication.objects.get_or_create(
+                resident=resident,
+                name=name,
+                defaults={
+                    "dose": dose,
+                    "route": route,
+                    "frequency": frequency,
+                    "start_date": today - timedelta(days=120),
+                    "prescriber": "Dr. Demo",
+                    "status": "active",
+                },
+            )
+
+            for day in range(84, 0, -1):
+
+                roll = rng.random()
+                status = (
+                    "administered" if roll < 0.9
+                    else "refused" if roll < 0.95
+                    else "missed" if roll < 0.98
+                    else "withheld"
+                )
+
+                MedicationAdministration.objects.create(
+                    medication=medication,
+                    administered_by=rng.choice(staff),
+                    administered_at=now - timedelta(days=day, hours=rng.randint(0, 3)),
+                    status=status,
+                )
+
+        MedicationAdministration.objects.create(
+            medication=Medication.objects.filter(resident=residents[2]).first(),
+            administered_by=staff[0],
+            administered_at=now - timedelta(hours=3),
+            status="refused",
+            notes="Resident drowsy and declined tablets.",
+        )
+
+    def seed_compliance(self, manager, owner, today):
+
+        for title, doc_type, version, next_review in [
+            ("Medication Management Policy", "policy", "3.1", today + timedelta(days=120)),
+            ("Falls Prevention Procedure", "procedure", "2.0", today - timedelta(days=12)),
+            ("Infection Control Guideline", "guideline", "1.4", today + timedelta(days=45)),
+            ("Recognising Deterioration (NEWS2) Procedure", "procedure", "1.0", today + timedelta(days=300)),
+        ]:
+            ComplianceDocument.objects.create(
+                title=title,
+                document_type=doc_type,
+                version=version,
+                owner=manager,
+                last_reviewed=next_review - timedelta(days=365),
+                next_review=next_review,
+            )
+
+        for description, category, likelihood, impact, review in [
+            ("Residents at high risk of falls at night", "clinical", 4, 4, today + timedelta(days=30)),
+            ("Agency staff unfamiliar with residents", "staff", 3, 3, today - timedelta(days=5)),
+            ("Medication omissions during handover", "medication", 3, 4, today + timedelta(days=14)),
+            ("Wet floors in communal bathroom", "environment", 2, 3, today + timedelta(days=60)),
+            ("Mandatory training compliance below target", "compliance", 4, 2, today + timedelta(days=21)),
+        ]:
+            Risk.objects.create(
+                description=description,
+                category=category,
+                likelihood=likelihood,
+                impact=impact,
+                owner=owner,
+                review_date=review,
+                mitigation="Controls documented in the related procedure.",
+            )
+
+        audit = Audit.objects.create(
+            title="Quarterly Medication Audit",
+            description="Review of MAR completeness, storage and PRN documentation.",
+            created_by=manager,
+            start_date=today - timedelta(days=20),
+            completion_date=today - timedelta(days=14),
+            status="completed",
+        )
+
+        controls = [
+            ("All administrations signed on the MAR", "passed", ""),
+            ("Controlled drugs register reconciled daily", "partial", "Two days without a second signature."),
+            ("Fridge temperatures logged twice daily", "failed", "Logs missing for 6 of 14 days."),
+            ("PRN effectiveness documented", "passed", ""),
+        ]
+
+        for requirement, result, finding in controls:
+            control = AuditControl.objects.create(
+                audit=audit,
+                requirement=requirement,
+                result=result,
+                finding=finding,
+                evidence="Sampled 20 MAR charts.",
+            )
+
+            if result == "failed":
+                CorrectiveAction.objects.create(
+                    title="Reinstate twice-daily fridge temperature checks",
+                    description=finding,
+                    owner=owner,
+                    priority="high",
+                    due_date=today - timedelta(days=2),
+                    source_finding=control,
+                )
+
+        CorrectiveAction.objects.create(
+            title="Install sensor mats for high falls-risk residents",
+            owner=owner,
+            priority="medium",
+            due_date=today + timedelta(days=21),
+            status="in_progress",
+            source_incident=Incident.objects.filter(category="fall").order_by("-incident_date").first(),
         )

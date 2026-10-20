@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Observations – {{ resident }} | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <a href="{% url 'resident_detail' resident.pk %}" class="back-link">
+            ← {{ resident }}
+        </a>
+
+        <h2>Observation Chart</h2>
+
+        <p>
+            {% if latest %}
+            Latest NEWS2
+            <strong class="news2-score news2-{{ latest.risk_level }}">{{ latest.news2_score }}</strong>
+            ({{ latest.get_risk_level_display }} risk) on {{ latest.recorded_at|date:"d M Y, H:i" }}
+            {% else %}
+            No observations recorded yet.
+            {% endif %}
+        </p>
+
+    </div>
+
+    {% if perms.observations.add_observation %}
+    <a href="{% url 'observation_create' %}?resident={{ resident.pk }}" class="btn btn-primary">
+        + Record Observations
+    </a>
+    {% endif %}
+
+</div>
+
+
+{% if observations %}
+
+<div class="resident-dashboard-grid">
+
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <h3>NEWS2 Trend</h3>
+                <span class="card-subtitle">Last {{ chart_data.labels|length }} readings</span>
+            </div>
+        </div>
+        <div class="chart-container">
+            <canvas id="news2Chart"></canvas>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <h3>Vital Signs Trend</h3>
+                <span class="card-subtitle">Pulse, systolic BP, respiration and SpO₂</span>
+            </div>
+        </div>
+        <div class="chart-container">
+            <canvas id="vitalsChart"></canvas>
+        </div>
+    </div>
+
+</div>
+
+{% endif %}
+
+
+<div class="card">
+
+    <div class="card-header">
+        <div>
+            <h3>History</h3>
+        </div>
+    </div>
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>Recorded</th>
+                    <th>NEWS2</th>
+                    <th>Risk</th>
+                    <th>RR</th>
+                    <th>SpO₂</th>
+                    <th>BP</th>
+                    <th>Pulse</th>
+                    <th>Temp</th>
+                    <th>ACVPU</th>
+                    <th>Staff</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for obs in observations %}
+                <tr>
+                    <td>{{ obs.recorded_at|date:"d M Y, H:i" }}</td>
+                    <td><strong class="news2-score news2-{{ obs.risk_level }}">{{ obs.news2_score }}</strong></td>
+                    <td><span class="risk-badge risk-{{ obs.risk_level }}">{{ obs.get_risk_level_display }}</span></td>
+                    <td>{{ obs.respiratory_rate }}</td>
+                    <td>{{ obs.spo2 }}%{% if obs.on_oxygen %} <small class="text-muted">O₂</small>{% endif %}</td>
+                    <td>{{ obs.systolic_bp }}{% if obs.diastolic_bp %}/{{ obs.diastolic_bp }}{% endif %}</td>
+                    <td>{{ obs.pulse }}</td>
+                    <td>{{ obs.temperature }}°</td>
+                    <td>{{ obs.consciousness }}</td>
+                    <td>{{ obs.recorded_by|default:"—" }}</td>
+                    <td><a href="{% url 'observation_detail' obs.pk %}" class="table-link">View</a></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="11"><div class="empty-state">No observations recorded yet.</div></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{{ chart_data|json_script:"chart-data" }}
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+(function () {
+    if (typeof Chart === "undefined" || !document.getElementById("news2Chart")) return;
+
+    const data = JSON.parse(document.getElementById("chart-data").textContent);
+
+    new Chart(document.getElementById("news2Chart"), {
+        type: "line",
+        data: {
+            labels: data.labels,
+            datasets: [{
+                label: "NEWS2",
+                data: data.news2,
+                borderColor: "#c62828",
+                backgroundColor: "rgba(198, 40, 40, 0.08)",
+                fill: true,
+                tension: 0.25,
+                pointBackgroundColor: data.news2.map((s) => s >= 7 ? "#c62828" : s >= 5 ? "#e65100" : s >= 1 ? "#c98200" : "#16845b"),
+            }],
+        },
+        options: {
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, suggestedMax: 10, ticks: { stepSize: 1 } } },
+        },
+    });
+
+    new Chart(document.getElementById("vitalsChart"), {
+        type: "line",
+        data: {
+            labels: data.labels,
+            datasets: [
+                { label: "Pulse", data: data.pulse, borderColor: "#2563eb", tension: 0.25 },
+                { label: "Systolic BP", data: data.systolic, borderColor: "#c62828", tension: 0.25 },
+                { label: "Resp. rate", data: data.respiratory, borderColor: "#16845b", tension: 0.25 },
+                { label: "SpO₂", data: data.spo2, borderColor: "#7c3aed", tension: 0.25 },
+            ],
+        },
+        options: { maintainAspectRatio: false },
+    });
+})();
+</script>
+{% endblock %}
