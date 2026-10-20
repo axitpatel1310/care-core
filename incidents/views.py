@@ -8,11 +8,10 @@ from django.utils import timezone
 from .forms import IncidentForm
 from .models import Incident
 from .models import Incident
-from accounts.audit import create_audit_log
 
 @login_required
 @permission_required(
-    "incident.view_incident",
+    "incidents.view_incident",
     raise_exception=True,
 )
 def incident_list(request):
@@ -83,7 +82,7 @@ def incident_list(request):
 
 @login_required
 @permission_required(
-    "incident.add_incident",
+    "incidents.add_incident",
     raise_exception=True,
 )
 def incident_create(request):
@@ -105,7 +104,7 @@ def incident_create(request):
 
             staff_member = getattr(
                 request.user,
-                "staff_member",
+                "staff_profile",
                 None,
             )
 
@@ -113,17 +112,6 @@ def incident_create(request):
                 incident.reported_by = staff_member
 
             incident.save()
-            create_audit_log(
-                user=request.user,
-                action="create",
-                module="incidents",
-                description=(
-                    f"Created incident #{incident.pk}: "
-                    f"{incident.get_category_display()}."
-                ),
-                object_type="Incident",
-                object_id=incident.pk,
-            )
             messages.success(
                 request,
                 "Incident reported successfully.",
@@ -152,7 +140,7 @@ def incident_create(request):
 
 @login_required
 @permission_required(
-    "incident.view_incident",
+    "incidents.view_incident",
     raise_exception=True,
 )
 def incident_detail(request, pk):
@@ -226,7 +214,7 @@ def incident_investigate(request, pk):
 
     return render(
         request,
-        "incidents/incident_investigate.html",
+        "incident/incident_investigate.html",
         {
             "form": form,
             "incident": incident,
@@ -235,7 +223,7 @@ def incident_investigate(request, pk):
 
 @login_required
 @permission_required(
-    "incident.change_incident",
+    "incidents.change_incident",
     raise_exception=True,
 )
 def incident_edit(request, pk):
@@ -296,7 +284,7 @@ def incident_edit(request, pk):
     
 @login_required
 @permission_required(
-    "incident.change_incident",
+    "incidents.change_incident",
     raise_exception=True,
 )
 def incident_resolve(request, pk):
@@ -317,14 +305,6 @@ def incident_resolve(request, pk):
                 "resolved_at",
             ]
         )
-        create_audit_log(
-            user=request.user,
-            action="update",
-            module="incidents",
-            description=f"Resolved incident #{incident.pk}.",
-            object_type="Incident",
-            object_id=incident.pk,
-        )
 
         messages.success(
             request,
@@ -338,7 +318,7 @@ def incident_resolve(request, pk):
     
 @login_required
 @permission_required(
-    "incident.delete_incident",
+    "incidents.delete_incident",
     raise_exception=True,
 )
 def incident_delete(request, pk):
@@ -349,20 +329,8 @@ def incident_delete(request, pk):
     )
 
     if request.method == "POST":
-        incident_description = (
-            f"Deleted incident #{incident.pk}: "
-            f"{incident.get_category_display()}."
-        )
         incident.delete()
 
-        create_audit_log(
-            user=request.user,
-            action="delete",
-            module="incidents",
-            description=incident_description,
-            object_type="Incident",
-            object_id=incident.pk,
-        )
         messages.success(
             request,
             "Incident deleted.",

@@ -425,7 +425,13 @@ from incidents.models import Incident
 
 @login_required
 def staff_workspace(request):
-    staff = get_object_or_404(StaffMember,user=request.user)
+    staff = StaffMember.objects.filter(user=request.user).first()
+    if staff is None:
+        messages.info(
+            request,
+            "Your account is not linked to a staff profile, so there is no personal workspace.",
+        )
+        return redirect("dashboard")
     today = date.today()
     # -------------------------
     # CARE TASKS
@@ -460,7 +466,7 @@ def staff_workspace(request):
             appointment_date=today,
         )
         .select_related("resident")
-        .order_by("appointment_time")
+        .order_by("start_time")
     )
 
 

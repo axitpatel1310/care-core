@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Risk Register | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">GOVERNANCE</span>
+        <h2>Risk Register</h2>
+        <p>Severity is rated automatically from a 5×5 likelihood × impact matrix.</p>
+    </div>
+    {% if perms.compliance.add_risk %}
+    <a href="{% url 'risk_create' %}" class="btn btn-primary">+ Add Risk</a>
+    {% endif %}
+</div>
+
+{% include "compliance/_nav.html" %}
+
+
+<div class="card">
+    <form method="GET" class="filter-form">
+        <div class="form-group">
+            <label for="severity">Severity</label>
+            <select id="severity" name="severity">
+                <option value="">All severities</option>
+                {% for value, label in severity_choices %}
+                <option value="{{ value }}" {% if severity == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="status">Status</label>
+            <select id="status" name="status">
+                <option value="">All statuses</option>
+                {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-secondary">Filter</button>
+            <a href="{% url 'risk_list' %}" class="btn btn-secondary">Clear</a>
+        </div>
+    </form>
+</div>
+
+
+<div class="card">
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Risk</th>
+                    <th>Category</th>
+                    <th>L × I</th>
+                    <th>Severity</th>
+                    <th>Owner</th>
+                    <th>Review</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for risk in risks %}
+                <tr>
+                    <td><a href="{% url 'risk_detail' risk.pk %}" class="table-link">{{ risk.description }}</a></td>
+                    <td>{{ risk.get_category_display }}</td>
+                    <td>{{ risk.likelihood }} × {{ risk.impact }} = <strong>{{ risk.risk_score }}</strong></td>
+                    <td><span class="severity-badge severity-{{ risk.severity }}">{{ risk.get_severity_display }}</span></td>
+                    <td>{{ risk.owner|default:"—" }}</td>
+                    <td>{{ risk.review_date|date:"d M Y"|default:"—" }}</td>
+                    <td>{{ risk.get_status_display }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7"><div class="empty-state">No risks recorded.</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

@@ -156,7 +156,8 @@ def facility_delete(request, pk):
         request,
         "facility/delete.html",
         {
-            "facility": facility,
+            "object": facility,
+            "object_type": "facility",
         },
     )
 

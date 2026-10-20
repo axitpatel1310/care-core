@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}{{ document.title }} | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <a href="{% url 'document_list' %}" class="back-link">← Policies &amp; Documents</a>
+        <h2>{{ document.title }}</h2>
+        <p>{{ document.get_document_type_display }} · version {{ document.version }}</p>
+    </div>
+    <div class="detail-actions">
+        {% if document.file %}
+        <a href="{{ document.file.url }}" class="btn btn-primary" target="_blank" rel="noopener">Open File</a>
+        {% endif %}
+        {% if perms.compliance.change_compliancedocument %}
+        <a href="{% url 'document_edit' document.pk %}" class="btn btn-secondary">Edit</a>
+        {% endif %}
+        {% if perms.compliance.delete_compliancedocument %}
+        <a href="{% url 'document_delete' document.pk %}" class="btn btn-danger">Delete</a>
+        {% endif %}
+    </div>
+</div>
+
+
+<div class="card">
+    <div class="info-grid">
+        <div><span>Status</span><strong>{{ document.get_status_display }}</strong></div>
+        <div><span>Owner</span><strong>{{ document.owner|default:"—" }}</strong></div>
+        <div><span>Created</span><strong>{{ document.created_at|date:"d M Y" }}</strong></div>
+        <div><span>Last reviewed</span><strong>{{ document.last_reviewed|date:"d M Y"|default:"—" }}</strong></div>
+        <div>
+            <span>Next review</span>
+            <strong>
+                {{ document.next_review|date:"d M Y"|default:"Not scheduled" }}
+                {% if document.next_review and document.next_review < today and document.status == "active" %}
+                <span class="risk-badge risk-high">Overdue</span>
+                {% endif %}
+            </strong>
+        </div>
+        <div><span>File</span><strong>{% if document.file %}{{ document.file.name }}{% else %}No file attached{% endif %}</strong></div>
+    </div>
+</div>
+
+{% endblock %}

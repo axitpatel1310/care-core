@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Delete Observation | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <a href="{% url 'observation_detail' observation.pk %}" class="back-link">
+            ← Observation
+        </a>
+        <h2>Delete Observation</h2>
+    </div>
+</div>
+
+
+<div class="card form-card">
+
+    <div class="danger-box">
+        <h3>Are you sure?</h3>
+        <p>
+            You are about to permanently delete the observation set for
+            <strong>{{ observation.resident }}</strong>
+            recorded {{ observation.recorded_at|date:"d M Y, H:i" }}
+            (NEWS2 {{ observation.news2_score }}).
+        </p>
+    </div>
+
+    <form method="POST">
+        {% csrf_token %}
+        <div class="form-actions">
+            <a href="{% url 'observation_detail' observation.pk %}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-danger">Delete Observation</button>
+        </div>
+    </form>
+
+</div>
+
+{% endblock %}

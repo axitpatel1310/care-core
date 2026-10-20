@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">QUALITY INDICATORS</span>
+        <h2>Analytics &amp; Reports</h2>
+        <p>{{ start|date:"d M Y" }} – {{ end|date:"d M Y" }}</p>
+    </div>
+
+    <form method="GET" class="inline-form">
+        <select name="days" onchange="this.form.submit()" aria-label="Reporting period">
+            {% for value, label in period_choices %}
+            <option value="{{ value }}" {% if days == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
+
+<div class="stats-grid">
+
+    <div class="stat-card">
+        <div class="stat-top"><span class="stat-label">Falls per 1,000 bed days</span></div>
+        <div class="stat-value">{{ kpis.falls_rate|default_if_none:"—" }}</div>
+        <span class="text-muted">{{ kpis.falls }} falls · {{ kpis.bed_days }} occupied bed days</span>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-top"><span class="stat-label">Medication adherence</span></div>
+        <div class="stat-value">{% if kpis.medication_adherence is not None %}{{ kpis.medication_adherence }}%{% else %}—{% endif %}</div>
+        <span class="text-muted">{{ kpis.doses_recorded }} doses recorded</span>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-top"><span class="stat-label">Care tasks on time</span></div>
+        <div class="stat-value">{% if kpis.task_on_time_rate is not None %}{{ kpis.task_on_time_rate }}%{% else %}—{% endif %}</div>
+        <span class="text-muted">{{ kpis.tasks_due }} tasks due</span>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-top"><span class="stat-label">Mean incident resolution</span></div>
+        <div class="stat-value">{% if kpis.mean_resolution_hours is not None %}{{ kpis.mean_resolution_hours }}h{% else %}—{% endif %}</div>
+        <span class="text-muted">{{ kpis.incident_count }} incidents</span>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-top"><span class="stat-label">NEWS2 escalations</span></div>
+        <div class="stat-value">{{ kpis.escalations }}</div>
+        <span class="text-muted">of {{ kpis.observation_count }} observation sets</span>
+    </div>
+
+</div>
+
+
+<div class="dashboard-grid">
+
+    <div class="card">
+        <div class="card-header"><div><h3>Incidents by Month</h3><p>Stacked by severity</p></div></div>
+        <div class="chart-container"><canvas id="incidentsMonthChart"></canvas></div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><div><h3>Incidents by Category</h3></div></div>
+        <div class="chart-container"><canvas id="incidentsCategoryChart"></canvas></div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><div><h3>Weekly Medication Adherence</h3><p>% of recorded doses administered</p></div></div>
+        <div class="chart-container"><canvas id="adherenceChart"></canvas></div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><div><h3>Current NEWS2 Risk</h3><p>Latest observation per active resident</p></div></div>
+        <div class="chart-container"><canvas id="news2Chart"></canvas></div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><div><h3>Residents by Care Level</h3></div></div>
+        <div class="chart-container"><canvas id="careLevelChart"></canvas></div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><div><h3>Export Data (CSV)</h3><p>For the selected period</p></div></div>
+        <div class="list">
+            {% if perms.incidents.view_incident %}
+            <div class="list-item"><div class="list-content"><strong>Incidents</strong></div>
+                <a class="btn btn-secondary btn-small" href="{% url 'analytics_export' 'incidents' %}?days={{ days }}">Download</a></div>
+            {% endif %}
+            {% if perms.medications.view_medicationadministration %}
+            <div class="list-item"><div class="list-content"><strong>Medication administrations</strong></div>
+                <a class="btn btn-secondary btn-small" href="{% url 'analytics_export' 'medication-administrations' %}?days={{ days }}">Download</a></div>
+            {% endif %}
+            {% if perms.observations.view_observation %}
+            <div class="list-item"><div class="list-content"><strong>Observations / NEWS2</strong></div>
+                <a class="btn btn-secondary btn-small" href="{% url 'analytics_export' 'observations' %}?days={{ days }}">Download</a></div>
+            {% endif %}
+            {% if perms.care.view_caretask %}
+            <div class="list-item"><div class="list-content"><strong>Care tasks</strong></div>
+                <a class="btn btn-secondary btn-small" href="{% url 'analytics_export' 'care-tasks' %}?days={{ days }}">Download</a></div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+{{ chart_data|json_script:"analytics-data" }}
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+(function () {
+    if (typeof Chart === "undefined") return;
+
+    const data = JSON.parse(document.getElementById("analytics-data").textContent);
+    const palette = ["#16845b", "#c98200", "#e65100", "#c62828", "#2563eb", "#7c3aed", "#0891b2"];
+    const base = { maintainAspectRatio: false };
+
+    const monthly = data.incidents_by_month;
+    new Chart(document.getElementById("incidentsMonthChart"), {
+        type: "bar",
+        data: {
+            labels: monthly.labels,
+            datasets: Object.entries(monthly.series).map(([label, values], i) => ({
+                label, data: values, backgroundColor: palette[i],
+            })),
+        },
+        options: { ...base, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } } } },
+    });
+
+    const doughnut = (id, series, colours) => new Chart(document.getElementById(id), {
+        type: "doughnut",
+        data: { labels: series.labels, datasets: [{ data: series.values, backgroundColor: colours || palette }] },
+        options: { ...base, plugins: { legend: { position: "right" } } },
+    });
+
+    doughnut("incidentsCategoryChart", data.incidents_by_category);
+    doughnut("news2Chart", data.news2, ["#16845b", "#c98200", "#e65100", "#c62828"]);
+    doughnut("careLevelChart", data.care_levels, ["#2563eb", "#c98200", "#c62828"]);
+
+    new Chart(document.getElementById("adherenceChart"), {
+        type: "line",
+        data: {
+            labels: data.adherence.labels,
+            datasets: [{ label: "Adherence %", data: data.adherence.values, borderColor: "#16845b", backgroundColor: "rgba(22,132,91,0.1)", fill: true, tension: 0.25 }],
+        },
+        options: { ...base, plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100 } } },
+    });
+})();
+</script>
+{% endblock %}

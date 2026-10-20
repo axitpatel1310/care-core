@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Delete Appointment | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <a
+            href="{% url 'appointment_detail' appointment.pk %}"
+            class="back-link"
+        >
+            ← {{ appointment.title }}
+        </a>
+
+        <h2>
+            Delete Appointment
+        </h2>
+
+    </div>
+
+</div>
+
+
+<div class="card form-card">
+
+    <div class="danger-box">
+
+        <h3>
+            Are you sure?
+        </h3>
+
+        <p>
+            You are about to permanently delete
+            <strong>{{ appointment.title }}</strong>
+            for
+            <strong>{{ appointment.resident }}</strong>
+            on {{ appointment.appointment_date|date:"d M Y" }}.
+        </p>
+
+    </div>
+
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+        <div class="form-actions">
+
+            <a
+                href="{% url 'appointment_detail' appointment.pk %}"
+                class="btn btn-secondary"
+            >
+                Cancel
+            </a>
+
+            <button
+                type="submit"
+                class="btn btn-danger"
+            >
+                Delete Appointment
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}

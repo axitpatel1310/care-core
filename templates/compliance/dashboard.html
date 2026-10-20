@@ -5,237 +5,194 @@
 {% block content %}
 
 <div class="page-header">
-
     <div>
-
         <span class="eyebrow">GOVERNANCE</span>
-
         <h2>Compliance</h2>
-
-        <p>
-            Monitor documents, risks, audits and corrective actions.
-        </p>
-
+        <p>Monitor policies, the risk register, audits and corrective actions.</p>
     </div>
-
 </div>
+
+{% include "compliance/_nav.html" %}
 
 
 <div class="stats-grid">
 
     <div class="stat-card">
         <div class="stat-top">
-            <span class="stat-label">Documents</span>
+            <span class="stat-label">Policies due review</span>
             <span class="stat-icon">▤</span>
         </div>
-
-        <div class="stat-value">
-            {{ documents|length }}
-        </div>
+        <div class="stat-value">{{ documents_due }}</div>
+        <span class="text-muted">of {{ documents|length }} documents</span>
     </div>
-
 
     <div class="stat-card">
         <div class="stat-top">
-            <span class="stat-label">Risks</span>
+            <span class="stat-label">High / extreme risks</span>
             <span class="stat-icon warning-icon">△</span>
         </div>
-
-        <div class="stat-value">
-            {{ risks|length }}
-        </div>
+        <div class="stat-value">{{ high_risks }}</div>
+        <span class="text-muted">of {{ risks|length }} open risks</span>
     </div>
-
 
     <div class="stat-card">
         <div class="stat-top">
             <span class="stat-label">Audits</span>
             <span class="stat-icon">⌕</span>
         </div>
-
-        <div class="stat-value">
-            {{ audits|length }}
-        </div>
+        <div class="stat-value">{{ audits|length }}</div>
     </div>
-
 
     <div class="stat-card">
         <div class="stat-top">
-            <span class="stat-label">Actions</span>
+            <span class="stat-label">Overdue actions</span>
             <span class="stat-icon danger-icon">!</span>
         </div>
-
-        <div class="stat-value">
-            {{ actions|length }}
-        </div>
+        <div class="stat-value">{{ overdue_actions }}</div>
+        <span class="text-muted">of {{ actions|length }} open actions</span>
     </div>
 
 </div>
 
 
-<div class="dashboard-grid">
-
-
-    <!-- DOCUMENTS -->
+<div class="resident-dashboard-grid">
 
     <div class="card">
 
         <div class="card-header">
-
             <div>
-                <h3>Compliance Documents</h3>
-                <p>Policies, procedures and standards</p>
+                <h3>Risk Heat Map</h3>
+                <p>Open risks by likelihood × impact</p>
             </div>
-
+            {% if perms.compliance.view_risk %}
+            <a href="{% url 'risk_list' %}" class="table-link">Risk register</a>
+            {% endif %}
         </div>
 
-
-        <div class="list">
-
-            {% for document in documents %}
-
-            <div class="list-item">
-
-                <div class="list-icon">
-                    ▤
-                </div>
-
-                <div class="list-content">
-
-                    <strong>
-                        {{ document.title }}
-                    </strong>
-
-                    <span>
-                        Version {{ document.version }}
-                    </span>
-
-                </div>
-
-                <span class="status-badge active">
-                    {{ document.get_status_display }}
-                </span>
-
-            </div>
-
-            {% empty %}
-
-            <div class="empty-state">
-                No compliance documents.
-            </div>
-
-            {% endfor %}
-
+        <div class="risk-matrix">
+            <div class="risk-matrix-axis-y">Impact</div>
+            <table>
+                {% for row in risk_matrix %}
+                <tr>
+                    <th>{{ row.impact }}</th>
+                    {% for cell in row.cells %}
+                    <td class="matrix-cell matrix-{% if cell.score >= 15 %}extreme{% elif cell.score >= 10 %}high{% elif cell.score >= 5 %}medium{% else %}low{% endif %}">
+                        {% if cell.count %}<strong>{{ cell.count }}</strong>{% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+                <tr>
+                    <th></th>
+                    {% for n in "12345" %}<th>{{ n }}</th>{% endfor %}
+                </tr>
+            </table>
+            <div class="risk-matrix-axis-x">Likelihood</div>
         </div>
 
     </div>
 
 
-    <!-- RISKS -->
-
     <div class="card">
 
         <div class="card-header">
-
             <div>
-                <h3>Risk Register</h3>
-                <p>Active facility risks</p>
+                <h3>Audit Results</h3>
+                <p>Compliance score per audit</p>
             </div>
-
+            {% if perms.compliance.view_audit %}
+            <a href="{% url 'audit_list' %}" class="table-link">All audits</a>
+            {% endif %}
         </div>
 
-
         <div class="list">
-
-            {% for risk in risks %}
-
+            {% for audit in audits|slice:":6" %}
             <div class="list-item">
-
-                <div class="list-icon risk">
-                    △
-                </div>
-
                 <div class="list-content">
-
                     <strong>
-                        {{ risk.description }}
+                        {% if perms.compliance.view_audit %}
+                        <a href="{% url 'audit_detail' audit.pk %}" class="table-link">{{ audit.title }}</a>
+                        {% else %}{{ audit.title }}{% endif %}
                     </strong>
-
-                    <span>
-                        {{ risk.get_category_display }}
-                    </span>
-
+                    <span>{{ audit.start_date|date:"d M Y" }} · {{ audit.get_status_display }}</span>
+                    {% if audit.compliance_score is not None %}
+                    <div class="progress"><div class="progress-bar" style="width: {{ audit.compliance_score }}%"></div></div>
+                    {% endif %}
                 </div>
-
-                <span class="status-badge {{ risk.severity|lower }}">
-                    {{ risk.severity }}
-                </span>
-
+                <strong>{% if audit.compliance_score is not None %}{{ audit.compliance_score }}%{% else %}—{% endif %}</strong>
             </div>
-
             {% empty %}
-
-            <div class="empty-state">
-                No risks recorded.
-            </div>
-
+            <div class="empty-state">No audits recorded.</div>
             {% endfor %}
-
         </div>
 
     </div>
 
 
-    <!-- ACTIONS -->
-
     <div class="card">
 
         <div class="card-header">
-
             <div>
-                <h3>Corrective Actions</h3>
-                <p>Actions generated from findings</p>
+                <h3>Open Corrective Actions</h3>
+                <p>Raised from audit findings and incidents</p>
             </div>
-
+            {% if perms.compliance.view_correctiveaction %}
+            <a href="{% url 'action_list' %}" class="table-link">All actions</a>
+            {% endif %}
         </div>
 
-
         <div class="list">
-
-            {% for action in actions %}
-
+            {% for action in actions|slice:":6" %}
             <div class="list-item">
-
-                <div class="list-icon incident">
-                    ✓
-                </div>
-
                 <div class="list-content">
-
                     <strong>
-                        {{ action.title }}
+                        {% if perms.compliance.view_correctiveaction %}
+                        <a href="{% url 'corrective_action_detail' action.pk %}" class="table-link">{{ action.title }}</a>
+                        {% else %}{{ action.title }}{% endif %}
                     </strong>
-
                     <span>
                         Due {{ action.due_date|date:"d M Y" }}
+                        {% if action.is_overdue %}<span class="risk-badge risk-high">Overdue</span>{% endif %}
                     </span>
-
                 </div>
-
-                <span class="status-badge">
-                    {{ action.get_status_display }}
-                </span>
-
+                <span class="priority-badge priority-{{ action.priority }}">{{ action.get_priority_display }}</span>
             </div>
-
             {% empty %}
-
-            <div class="empty-state">
-                No corrective actions.
-            </div>
-
+            <div class="empty-state">No open corrective actions.</div>
             {% endfor %}
+        </div>
 
+    </div>
+
+
+    <div class="card">
+
+        <div class="card-header">
+            <div>
+                <h3>Policies &amp; Documents</h3>
+                <p>Next review date</p>
+            </div>
+            {% if perms.compliance.view_compliancedocument %}
+            <a href="{% url 'document_list' %}" class="table-link">All documents</a>
+            {% endif %}
+        </div>
+
+        <div class="list">
+            {% for document in documents|slice:":6" %}
+            <div class="list-item">
+                <div class="list-content">
+                    <strong>
+                        {% if perms.compliance.view_compliancedocument %}
+                        <a href="{% url 'document_detail' document.pk %}" class="table-link">{{ document.title }}</a>
+                        {% else %}{{ document.title }}{% endif %}
+                    </strong>
+                    <span>Version {{ document.version }} · review {{ document.next_review|date:"d M Y"|default:"not scheduled" }}</span>
+                </div>
+                <span class="status-badge status-{{ document.status }}">{{ document.get_status_display }}</span>
+            </div>
+            {% empty %}
+            <div class="empty-state">No compliance documents.</div>
+            {% endfor %}
         </div>
 
     </div>

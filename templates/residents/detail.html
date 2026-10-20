@@ -55,6 +55,15 @@
 
     <div class="resident-header-actions">
 
+        {% if perms.observations.add_observation %}
+        <a
+            href="{% url 'observation_create' %}?resident={{ resident.pk }}"
+            class="btn btn-primary"
+        >
+            Record Observations
+        </a>
+        {% endif %}
+
         {% if perms.residents.change_resident %}
 
         <a
@@ -128,6 +137,66 @@
         </strong>
 
     </div>
+
+</div>
+
+<!-- CLINICAL RISK -->
+
+<div class="resident-dashboard-grid">
+
+    <div class="card">
+
+        <div class="card-header">
+            <div>
+                <h3>Clinical Risk Score</h3>
+                <span class="card-subtitle">Composite of recent clinical and governance signals</span>
+            </div>
+            <span class="risk-badge band-{{ risk.band }}">{{ risk.get_band_display }}</span>
+        </div>
+
+        <div class="card-section risk-summary-card">
+            <div>
+                <div class="risk-summary-score">{{ risk.score }}<small class="text-muted">/100</small></div>
+                <div class="progress"><div class="progress-bar risk-bar-{{ risk.band }}" style="width: {{ risk.score }}%"></div></div>
+            </div>
+            {% include "insights/_risk_factors.html" %}
+        </div>
+
+    </div>
+
+
+    {% if perms.observations.view_observation %}
+    <div class="card">
+
+        <div class="card-header">
+            <div>
+                <h3>Latest Observations</h3>
+                <span class="card-subtitle">
+                    {% if latest_observation %}{{ latest_observation.recorded_at|date:"d M Y, H:i" }}{% else %}None recorded{% endif %}
+                </span>
+            </div>
+            <a href="{% url 'resident_observations' resident.pk %}" class="table-link">Chart →</a>
+        </div>
+
+        {% if latest_observation %}
+        <div class="card-section">
+            <p>
+                <strong class="news2-score news2-{{ latest_observation.risk_level }}">{{ latest_observation.news2_score }}</strong>
+                NEWS2 · <span class="risk-badge risk-{{ latest_observation.risk_level }}">{{ latest_observation.get_risk_level_display }} risk</span>
+            </p>
+            <p class="text-muted">
+                RR {{ latest_observation.respiratory_rate }} · SpO₂ {{ latest_observation.spo2 }}% ·
+                BP {{ latest_observation.systolic_bp }}{% if latest_observation.diastolic_bp %}/{{ latest_observation.diastolic_bp }}{% endif %} ·
+                P {{ latest_observation.pulse }} · T {{ latest_observation.temperature }}° ·
+                {{ latest_observation.get_consciousness_display }}
+            </p>
+        </div>
+        {% else %}
+        <div class="empty-state">No observations recorded yet.</div>
+        {% endif %}
+
+    </div>
+    {% endif %}
 
 </div>
 

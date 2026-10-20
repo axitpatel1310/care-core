@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}{{ appointment.title }} | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <a
+            href="{% url 'appointment_list' %}"
+            class="back-link"
+        >
+            ← Appointments
+        </a>
+
+        <h2>
+            {{ appointment.title }}
+        </h2>
+
+        <p>
+            <a href="{% url 'resident_detail' appointment.resident.pk %}" class="table-link">
+                {{ appointment.resident }}
+            </a>
+        </p>
+
+    </div>
+
+
+    <div class="detail-actions">
+
+        {% if perms.appointments.change_appointment %}
+        <a
+            href="{% url 'appointment_edit' appointment.pk %}"
+            class="btn btn-secondary"
+        >
+            Edit
+        </a>
+        {% endif %}
+
+        {% if perms.appointments.delete_appointment %}
+        <a
+            href="{% url 'appointment_delete' appointment.pk %}"
+            class="btn btn-danger"
+        >
+            Delete
+        </a>
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<div class="card">
+
+    <div class="info-grid">
+
+        <div>
+            <span>Type</span>
+            <strong>{{ appointment.get_appointment_type_display }}</strong>
+        </div>
+
+        <div>
+            <span>Status</span>
+            <strong>
+                <span class="status-badge status-{{ appointment.status }}">
+                    {{ appointment.get_status_display }}
+                </span>
+            </strong>
+        </div>
+
+        <div>
+            <span>Date</span>
+            <strong>{{ appointment.appointment_date|date:"D d M Y" }}</strong>
+        </div>
+
+        <div>
+            <span>Time</span>
+            <strong>
+                {{ appointment.start_time|time:"H:i" }}{% if appointment.end_time %} – {{ appointment.end_time|time:"H:i" }}{% endif %}
+            </strong>
+        </div>
+
+        <div>
+            <span>Provider</span>
+            <strong>{{ appointment.provider|default:"—" }}</strong>
+        </div>
+
+        <div>
+            <span>Location</span>
+            <strong>{{ appointment.location|default:"—" }}</strong>
+        </div>
+
+        <div>
+            <span>Assigned Staff</span>
+            <strong>{{ appointment.assigned_staff|default:"Unassigned" }}</strong>
+        </div>
+
+    </div>
+
+
+    <div class="card-section">
+        <h3>Notes</h3>
+        <p class="{% if not appointment.notes %}text-muted{% endif %}">
+            {{ appointment.notes|default:"No notes recorded."|linebreaksbr }}
+        </p>
+    </div>
+
+    <div class="card-section">
+        <h3>Outcome</h3>
+        <p class="{% if not appointment.outcome %}text-muted{% endif %}">
+            {{ appointment.outcome|default:"No outcome recorded yet."|linebreaksbr }}
+        </p>
+    </div>
+
+</div>
+
+{% endblock %}

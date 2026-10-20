@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Alerts | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">CLINICAL SAFETY</span>
+        <h2>Alert Centre</h2>
+        <p>Live alerts generated from observations, incidents, medication, care tasks and governance data.</p>
+    </div>
+</div>
+
+
+<div class="stats-grid">
+    <a class="stat-card alert-filter {% if severity == 'critical' %}selected{% endif %}" href="?severity=critical">
+        <div class="stat-top"><span class="stat-label">Critical</span><span class="stat-icon danger-icon">!</span></div>
+        <div class="stat-value">{{ counts.critical }}</div>
+    </a>
+    <a class="stat-card alert-filter {% if severity == 'warning' %}selected{% endif %}" href="?severity=warning">
+        <div class="stat-top"><span class="stat-label">Warnings</span><span class="stat-icon warning-icon">△</span></div>
+        <div class="stat-value">{{ counts.warning }}</div>
+    </a>
+    <a class="stat-card alert-filter {% if severity == 'info' %}selected{% endif %}" href="?severity=info">
+        <div class="stat-top"><span class="stat-label">Information</span><span class="stat-icon">i</span></div>
+        <div class="stat-value">{{ counts.info }}</div>
+    </a>
+    <a class="stat-card alert-filter {% if not severity %}selected{% endif %}" href="{% url 'alert_centre' %}">
+        <div class="stat-top"><span class="stat-label">All alerts</span><span class="stat-icon">♢</span></div>
+        <div class="stat-value">{{ counts.critical|add:counts.warning|add:counts.info }}</div>
+    </a>
+</div>
+
+
+{% for category, items in grouped.items %}
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h3>{{ category }}</h3>
+            <span class="card-subtitle">{{ items|length }} alert{{ items|length|pluralize }}</span>
+        </div>
+    </div>
+
+    <div class="list">
+        {% for alert in items %}
+        <div class="list-item alert-item alert-{{ alert.severity }}">
+            <span class="alert-severity alert-severity-{{ alert.severity }}">{{ alert.severity_label }}</span>
+            <div class="list-content">
+                <strong>
+                    {% if alert.url %}<a href="{{ alert.url }}" class="table-link">{{ alert.title }}</a>{% else %}{{ alert.title }}{% endif %}
+                </strong>
+                <span>{{ alert.message }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% empty %}
+<div class="card">
+    <div class="empty-state">
+        No alerts{% if severity %} at this severity{% endif %}. Everything you are responsible for is up to date.
+    </div>
+</div>
+{% endfor %}
+
+{% endblock %}

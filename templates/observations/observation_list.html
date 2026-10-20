@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Observations | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <span class="eyebrow">
+            CLINICAL
+        </span>
+
+        <h2>
+            Observations &amp; NEWS2
+        </h2>
+
+        <p>
+            Vital signs with automatic National Early Warning Score 2 calculation and escalation.
+        </p>
+
+    </div>
+
+    {% if perms.observations.add_observation %}
+    <a
+        href="{% url 'observation_create' %}"
+        class="btn btn-primary"
+    >
+        + Record Observations
+    </a>
+    {% endif %}
+
+</div>
+
+
+<div class="card">
+
+    <form
+        method="GET"
+        class="filter-form"
+    >
+
+        <div class="form-group">
+            <label for="search">Resident</label>
+            <input
+                id="search"
+                type="text"
+                name="q"
+                value="{{ query }}"
+                placeholder="Search resident..."
+            >
+        </div>
+
+        <div class="form-group">
+            <label for="risk">Clinical risk</label>
+            <select id="risk" name="risk">
+                <option value="">All risk levels</option>
+                {% for value, label in risk_choices %}
+                <option value="{{ value }}" {% if risk == value %}selected{% endif %}>
+                    {{ label }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-secondary">Filter</button>
+            <a href="{% url 'observation_list' %}" class="btn btn-secondary">Clear</a>
+        </div>
+
+    </form>
+
+</div>
+
+
+<div class="card">
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>Recorded</th>
+                    <th>Resident</th>
+                    <th>NEWS2</th>
+                    <th>Risk</th>
+                    <th>RR</th>
+                    <th>SpO₂</th>
+                    <th>BP</th>
+                    <th>Pulse</th>
+                    <th>Temp</th>
+                    <th>ACVPU</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for obs in observations %}
+                <tr>
+                    <td>{{ obs.recorded_at|date:"d M Y, H:i" }}</td>
+                    <td>
+                        <a href="{% url 'resident_observations' obs.resident.pk %}" class="table-link">
+                            {{ obs.resident }}
+                        </a>
+                    </td>
+                    <td><strong class="news2-score news2-{{ obs.risk_level }}">{{ obs.news2_score }}</strong></td>
+                    <td>
+                        <span class="risk-badge risk-{{ obs.risk_level }}">
+                            {{ obs.get_risk_level_display }}
+                        </span>
+                    </td>
+                    <td>{{ obs.respiratory_rate }}</td>
+                    <td>{{ obs.spo2 }}%{% if obs.on_oxygen %} <small class="text-muted">O₂</small>{% endif %}</td>
+                    <td>{{ obs.systolic_bp }}{% if obs.diastolic_bp %}/{{ obs.diastolic_bp }}{% endif %}</td>
+                    <td>{{ obs.pulse }}</td>
+                    <td>{{ obs.temperature }}°</td>
+                    <td>{{ obs.consciousness }}</td>
+                    <td>
+                        <a href="{% url 'observation_detail' obs.pk %}" class="table-link">View</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="11">
+                        <div class="empty-state">No observations recorded yet.</div>
+                    </td>
+                </tr>
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}
