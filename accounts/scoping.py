@@ -3,8 +3,9 @@ Facility-level data segregation.
 
 Administrators see every facility. Everyone else sees residents in the
 facility they work in (their staff profile) and any facility they manage.
-Residents without a room yet (e.g. awaiting admission to a ward) are
-visible to all staff so they are never orphaned.
+Every resident and incident carries its own facility, so nothing is
+visible across facilities; records with no facility are administrator-only
+until one is assigned.
 """
 
 from django.db.models import Q
@@ -47,10 +48,7 @@ def resident_filter(user, prefix=""):
     if ids is None:
         return Q()
 
-    return (
-        Q(**{f"{prefix}room__ward__facility__in": ids})
-        | Q(**{f"{prefix}room__isnull": True})
-    )
+    return Q(**{f"{prefix}facility__in": ids})
 
 
 def scope(queryset, user, prefix="resident__"):
@@ -111,12 +109,15 @@ def resident_path(model, depth=0):
 def facility_path(model):
 
     from facility.models import Facility, Room, Ward
+    from incidents.models import Incident
 
     return {
         Facility: "pk__in",
         Ward: "facility__in",
         Room: "ward__facility__in",
         StaffMember: "facility__in",
+        # Incidents may have no resident, so they carry their own facility.
+        Incident: "facility__in",
     }.get(model)
 
 
@@ -159,9 +160,24 @@ def limit_resident_choices(form, user):
     facilities in form dropdowns; submitting another id then fails validation.
     """
 
-    for field in form.fields.values():
+    from facility.models import Facility
+
+    for name, field in form.fields.items():
 
         queryset = getattr(field, "queryset", None)
 
-        if queryset is not None:
-            field.queryset = scope_for_model(queryset, user)
+        if queryset is None:
+            continue
+
+        field.queryset = scope_for_model(queryset, user)
+
+        # Pre-select the facility when the user only works in one.
+        if (
+            queryset.model is Facility
+            and not form.is_bound
+            and not form.initial.get(name)
+            and not getattr(form.instance, f"{name}_id", None)
+        ):
+            only = list(field.queryset[:2])
+            if len(only) == 1:
+                form.initial[name] = only[0].pk

@@ -64,7 +64,7 @@ def login_view(request):
 
         if user is not None:
             login(request, user)
-            throttle.reset(email)
+            throttle.register_success(email, ip)
 
             return redirect(safe_next_url(request) or "dashboard")
 

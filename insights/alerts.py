@@ -9,6 +9,7 @@ they are allowed to view.
 from dataclasses import dataclass
 from datetime import timedelta
 
+from django.db.models import F
 from django.urls import reverse
 from django.utils import timezone
 
@@ -16,6 +17,7 @@ from accounts.scoping import scope_for_model
 from appointments.models import Appointment
 from care.models import Assessment, CarePlan, CareTask
 from compliance.models import ComplianceDocument, CorrectiveAction, Risk
+from facility.models import Room
 from incidents.models import Incident
 from medications.models import Medication, MedicationAdministration
 from medications.schedule import overdue_doses
@@ -344,6 +346,28 @@ def unconfirmed_appointments(now, scope):
             ),
             url=reverse("appointment_detail", args=[appointment.pk]),
             resident=appointment.resident,
+        )
+
+
+@rule("facility.view_room")
+def rooms_over_capacity(now, scope):
+
+    rooms = (
+        scope(Room.objects.all())
+        .filter(occupied__gt=F("capacity"))
+        .select_related("ward__facility")
+    )
+
+    for room in rooms:
+        yield Alert(
+            severity=WARNING,
+            category="Facility",
+            title=f"Room {room} over capacity",
+            message=(
+                f"{room.ward} has {room.occupied} residents in a room for {room.capacity}; "
+                "move a resident or increase the capacity."
+            ),
+            url=reverse("facility_detail", args=[room.ward.facility_id]),
         )
 
 

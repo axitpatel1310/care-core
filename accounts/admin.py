@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
-from .models import AuditLog, User
+from .models import AuditLog, LoginAttempt, User
 
 
 @admin.register(User)
@@ -26,3 +26,10 @@ class AuditLogAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(LoginAttempt)
+class LoginAttemptAdmin(admin.ModelAdmin):
+    list_display = ("created_at", "email", "ip_address", "successful")
+    list_filter = ("successful",)
+    search_fields = ("email", "ip_address")

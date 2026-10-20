@@ -1,51 +1,87 @@
 """
 Sign-in throttling.
 
-Failed attempts are counted per email address and per client IP in the
-cache. Once a limit is reached further attempts are refused until the
-window expires, which blocks online password guessing without locking
-the account in the database.
+Attempts are stored in the LoginAttempt table, so every server process
+(e.g. several gunicorn workers) sees the same counts. An email is locked
+after too many failures since its last successful sign-in within the
+window; an IP address is locked after too many failures of any account.
 """
 
+from datetime import timedelta
+
 from django.conf import settings
-from django.core.cache import cache
+from django.utils import timezone
+
+from .models import LoginAttempt
 
 
 WINDOW_SECONDS = getattr(settings, "LOGIN_THROTTLE_WINDOW", 15 * 60)
 MAX_FAILURES_PER_EMAIL = getattr(settings, "LOGIN_THROTTLE_EMAIL_LIMIT", 5)
 MAX_FAILURES_PER_IP = getattr(settings, "LOGIN_THROTTLE_IP_LIMIT", 20)
 
+# Attempts older than this are deleted as new ones are recorded.
+RETENTION = timedelta(days=30)
 
-def _keys(email, ip):
-    return (
-        f"carecore:login-fail:email:{email.strip().lower()}",
-        f"carecore:login-fail:ip:{ip or 'unknown'}",
-    )
+
+def _normalise(email):
+    return (email or "").strip().lower()
+
+
+def _window_start():
+    return timezone.now() - timedelta(seconds=WINDOW_SECONDS)
+
+
+def failures_for_email(email):
+
+    email = _normalise(email)
+    attempts = LoginAttempt.objects.filter(email=email, created_at__gte=_window_start())
+
+    last_success = attempts.filter(successful=True).order_by("-created_at").first()
+
+    failures = attempts.filter(successful=False)
+
+    if last_success:
+        failures = failures.filter(created_at__gt=last_success.created_at)
+
+    return failures.count()
+
+
+def failures_for_ip(ip):
+
+    if not ip:
+        return 0
+
+    return LoginAttempt.objects.filter(
+        ip_address=ip,
+        successful=False,
+        created_at__gte=_window_start(),
+    ).count()
 
 
 def is_locked(email, ip):
-
-    email_key, ip_key = _keys(email, ip)
-
     return (
-        cache.get(email_key, 0) >= MAX_FAILURES_PER_EMAIL
-        or cache.get(ip_key, 0) >= MAX_FAILURES_PER_IP
+        failures_for_email(email) >= MAX_FAILURES_PER_EMAIL
+        or failures_for_ip(ip) >= MAX_FAILURES_PER_IP
+    )
+
+
+def record(email, ip, successful):
+
+    LoginAttempt.objects.filter(created_at__lt=timezone.now() - RETENTION).delete()
+
+    LoginAttempt.objects.create(
+        email=_normalise(email)[:254],
+        ip_address=ip or None,
+        successful=successful,
     )
 
 
 def register_failure(email, ip):
-
-    for key in _keys(email, ip):
-        # add() starts the window on the first failure; incr() keeps its expiry.
-        if not cache.add(key, 1, WINDOW_SECONDS):
-            try:
-                cache.incr(key)
-            except ValueError:
-                cache.set(key, 1, WINDOW_SECONDS)
+    record(email, ip, successful=False)
 
 
-def reset(email):
-    cache.delete(_keys(email, None)[0])
+def register_success(email, ip):
+    record(email, ip, successful=True)
 
 
 def lockout_minutes():

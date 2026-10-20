@@ -73,6 +73,7 @@ CareCore is a centralized management system for residential care facilities, bri
 * Wards
 * Rooms
 * Room capacity, with occupancy **calculated from residents** (residents in hospital or on leave keep their bed); a resident cannot be placed in a full room
+* Rooms already over capacity raise an alert and are badged; `python manage.py occupancy_report` lists them along with any residents missing a facility
 * Facility management structure
 
 ### Clinical Observations & NEWS2 Early Warning
@@ -105,10 +106,10 @@ CareCore is a centralized management system for residential care facilities, bri
 * Role-based access control: each role is mapped to a Django permission group automatically (groups are provisioned after `migrate` and kept in sync when a user's role changes)
 * Sign-in with email address (case-insensitive)
 * **Account approval:** self-registration only creates a request; an administrator approves it and assigns the role
-* **Sign-in throttling:** repeated failed attempts lock sign-in for 15 minutes
+* **Sign-in throttling:** repeated failed attempts lock sign-in for 15 minutes; attempts are stored in the database, so the limit holds across all server processes
 * Password reset by email and password change
 * Safe post-login redirects (no open redirect), and sign-out only via POST
-* **Facility data segregation:** staff only see residents (and their records, alerts and reports) for the facility they work in or manage; administrators see everything
+* **Facility data segregation:** every resident and incident belongs to a facility, and staff only see residents (and their records, incidents, alerts and reports) for the facility they work in or manage; administrators see everything
 * Uploaded policy documents are served only to users with permission, never from a public URL
 * **Automatic audit trail** of every create/update/delete on clinical and governance records, with the acting user, IP address and a field-level before/after diff; sign-ins, sign-outs, failed sign-ins and data exports are also logged
 * Filterable, paginated audit log for administrators
@@ -390,7 +391,7 @@ Views are protected using authentication and permission decorators where appropr
 python manage.py test
 ```
 
-The suite (113 tests) covers NEWS2 boundary values for every parameter, risk bands and escalation, the composite risk score, alert rules and their permission filtering, quality-indicator calculations, CSV export safety, the risk matrix, audit compliance scoring, corrective-action lifecycle, role/permission group sync, email login, the audit trail, medication scheduling and the MAR, derived occupancy and room capacity, facility data segregation, login throttling, open-redirect protection, account approval, password reset, observation amendments, form submissions in every module, a check that risk scoring uses a constant number of queries, and a smoke test that renders every page as every role against the demo data.
+The suite (123 tests) covers NEWS2 boundary values for every parameter, risk bands and escalation, the composite risk score, alert rules and their permission filtering, quality-indicator calculations, CSV export safety, the risk matrix, audit compliance scoring, corrective-action lifecycle, role/permission group sync, email login, the audit trail, medication scheduling and the MAR, derived occupancy and room capacity, facility data segregation, login throttling, open-redirect protection, account approval, password reset, observation amendments, form submissions in every module, a check that risk scoring uses a constant number of queries, and a smoke test that renders every page as every role against the demo data.
 
 Continuous integration (`.github/workflows/ci.yml`) runs the system checks, a migrations check, `check --deploy` with production settings, and the full test suite on every push.
 

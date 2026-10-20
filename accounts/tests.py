@@ -82,6 +82,7 @@ class AuditTrailTests(TestCase):
         resident = make_resident()
 
         self.client.post(reverse("resident_edit", args=[resident.pk]), {
+            "facility": resident.facility_id,
             "first_name": "Ada",
             "last_name": "Byron",
             "date_of_birth": "1940-01-01",
@@ -150,6 +151,38 @@ class LoginSecurityTests(TestCase):
         self.assertEqual(response.status_code, 429)
         self.assertNotIn("_auth_user_id", self.client.session)
         self.assertTrue(AuditLog.objects.filter(description__icontains="throttling").exists())
+
+    def test_lockout_is_shared_across_processes(self):
+        """Attempts live in the database, so clearing a process-local cache does not reset them."""
+
+        from django.core.cache import cache
+
+        from . import throttle
+        from .models import LoginAttempt
+
+        for _ in range(throttle.MAX_FAILURES_PER_EMAIL):
+            self.login(password="wrong")
+
+        cache.clear()  # what a different gunicorn worker would see
+
+        self.assertEqual(self.login().status_code, 429)
+        self.assertEqual(
+            LoginAttempt.objects.filter(email="nurse@example.test", successful=False).count(),
+            throttle.MAX_FAILURES_PER_EMAIL,
+        )
+
+    def test_lockout_expires_after_window(self):
+        from datetime import timedelta
+
+        from . import throttle
+        from .models import LoginAttempt
+
+        for _ in range(throttle.MAX_FAILURES_PER_EMAIL):
+            self.login(password="wrong")
+
+        LoginAttempt.objects.update(created_at=timezone.now() - timedelta(seconds=throttle.WINDOW_SECONDS + 1))
+
+        self.assertRedirects(self.login(), reverse("dashboard"))
 
     def test_successful_login_resets_failure_count(self):
         from . import throttle
@@ -273,17 +306,70 @@ class FacilityScopingTests(TestCase):
 
         self.resident_a = make_resident(first_name="Alice", room=self.room_a)
         self.resident_b = make_resident(first_name="Bella", room=self.room_b)
-        self.unassigned = make_resident(first_name="Una")
+        # Awaiting a room, but already belongs to facility A.
+        self.awaiting_room = make_resident(first_name="Ava", facility=self.facility_a)
+        # No facility at all: administrators only.
+        self.orphan = make_resident(first_name="Orla", facility=None)
 
         self.nurse_a = make_user("rn")
         make_staff(self.nurse_a, self.facility_a, self.ward_a)
 
-    def test_list_only_shows_own_facility_and_unassigned(self):
+    def test_list_only_shows_own_facility(self):
         self.client.force_login(self.nurse_a)
 
         names = {r.first_name for r in self.client.get(reverse("resident_list")).context["residents"]}
 
-        self.assertEqual(names, {"Alice", "Una"})
+        self.assertEqual(names, {"Alice", "Ava"})
+
+    def test_resident_facility_follows_room(self):
+        self.awaiting_room.room = self.room_b
+        self.awaiting_room.save()
+        self.awaiting_room.refresh_from_db()
+
+        self.assertEqual(self.awaiting_room.facility, self.facility_b)
+
+    def test_incident_without_resident_is_scoped_to_its_facility(self):
+        from incidents.models import Incident
+
+        for facility in (self.facility_a, self.facility_b):
+            Incident.objects.create(
+                facility=facility,
+                incident_date=timezone.now(),
+                category="environmental",
+                severity="low",
+                description=f"Spill at {facility.pk}",
+            )
+
+        Incident.objects.create(
+            resident=self.resident_b,
+            incident_date=timezone.now(),
+            category="fall",
+            severity="low",
+            description="Fall in B",
+        )
+
+        self.client.force_login(self.nurse_a)
+        descriptions = {i.description for i in self.client.get(reverse("incident_list")).context["incidents"]}
+
+        self.assertEqual(descriptions, {f"Spill at {self.facility_a.pk}"})
+
+    def test_incident_needs_resident_or_facility(self):
+        from incidents.forms import IncidentForm
+
+        form = IncidentForm(data={
+            "incident_date": "2026-01-01T09:00", "category": "environmental",
+            "severity": "low", "description": "Spill", "status": "open",
+        })
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("facility", form.errors)
+
+    def test_single_facility_is_preselected(self):
+        self.client.force_login(self.nurse_a)
+
+        form = self.client.get(reverse("resident_create")).context["form"]
+
+        self.assertEqual(form.initial["facility"], self.facility_a.pk)
 
     def test_other_facility_resident_is_404(self):
         self.client.force_login(self.nurse_a)
@@ -311,19 +397,19 @@ class FacilityScopingTests(TestCase):
         self.assertFalse(CareTask.objects.filter(title="Sneaky").exists())
 
     def test_facility_manager_sees_managed_facility(self):
-        manager = make_user("manager")
+        manager = make_user("manager", with_staff_profile=False)
         self.facility_b.manager = manager
         self.facility_b.save()
 
         self.client.force_login(manager)
         names = {r.first_name for r in self.client.get(reverse("resident_list")).context["residents"]}
 
-        self.assertEqual(names, {"Bella", "Una"})
+        self.assertEqual(names, {"Bella"})
 
     def test_admin_sees_everyone(self):
         self.client.force_login(make_user("admin"))
         response = self.client.get(reverse("resident_list"))
-        self.assertEqual(response.context["page"].paginator.count, 3)
+        self.assertEqual(response.context["page"].paginator.count, 4)
 
     def test_alerts_are_scoped(self):
         from care.models import CareTask

@@ -221,6 +221,9 @@
 
                     <strong>
                         {{ room.occupied }}
+                        {% if room.occupied > room.capacity %}
+                        <span class="risk-badge risk-high">Over capacity</span>
+                        {% endif %}
                     </strong>
 
                 </div>

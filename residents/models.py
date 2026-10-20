@@ -32,6 +32,15 @@ class Resident(models.Model):
         choices=GENDER_CHOICES,
     )
 
+    facility = models.ForeignKey(
+        "facility.Facility",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="residents",
+        help_text="Set automatically from the room; choose it directly for residents without a room yet.",
+    )
+
     room = models.ForeignKey(
         "facility.Room",
         on_delete=models.SET_NULL,
@@ -61,6 +70,19 @@ class Resident(models.Model):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
+
+    def save(self, *args, **kwargs):
+
+        # The room's facility always wins, so the two can never disagree.
+        if self.room_id:
+            self.facility_id = (
+                type(self.room).objects
+                .filter(pk=self.room_id)
+                .values_list("ward__facility_id", flat=True)
+                .first()
+            )
+
+        super().save(*args, **kwargs)
     
 class ResidentContact(models.Model):
 

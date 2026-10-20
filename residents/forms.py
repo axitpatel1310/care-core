@@ -38,6 +38,11 @@ class ResidentForm(forms.ModelForm):
         room = cleaned_data.get("room")
         status = cleaned_data.get("status")
 
+        if room:
+            cleaned_data["facility"] = room.ward.facility
+        elif not cleaned_data.get("facility"):
+            self.add_error("facility", "Choose the facility, or a room, for this resident.")
+
         if room and status in OCCUPYING_STATUSES:
 
             taken = occupants(room, exclude=self.instance).count()

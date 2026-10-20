@@ -164,7 +164,8 @@ class FormSubmissionTests(TestCase):
         from incidents.models import Incident
 
         self.post_creates("incident_create", {
-            "resident": self.resident.pk, "incident_date": f"{self.today}T09:00", "category": "fall",
+            "resident": self.resident.pk,
+            "facility": self.facility.pk, "incident_date": f"{self.today}T09:00", "category": "fall",
             "severity": "medium", "description": "Slipped", "status": "open",
         }, Incident, description="Slipped")
 
@@ -204,7 +205,7 @@ class FormSubmissionTests(TestCase):
         from carecore.testing import make_user
         from staff.models import ResidentStaffAssignment, StaffMember
 
-        new_user = make_user("care_worker")
+        new_user = make_user("care_worker", with_staff_profile=False)
 
         self.post_creates("staff_create", {
             "user": new_user.pk, "employee_id": "CW999", "facility": self.facility.pk,

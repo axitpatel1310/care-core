@@ -16,6 +16,9 @@ erDiagram
     WARD ||--o{ ROOM : contains
     FACILITY ||--o{ STAFF_MEMBER : employs
     ROOM ||--o{ RESIDENT : "is occupied by"
+    FACILITY ||--o{ RESIDENT : "is home to"
+    FACILITY ||--o{ INCIDENT : "happens at"
+    USER ||--o{ LOGIN_ATTEMPT : "signs in"
 
     RESIDENT ||--o{ RESIDENT_CONTACT : has
     RESIDENT ||--o{ RESIDENT_STAFF_ASSIGNMENT : "cared for by"
@@ -90,6 +93,12 @@ erDiagram
         int impact "1-5"
         string severity "derived from L x I"
     }
+    LOGIN_ATTEMPT {
+        string email
+        string ip_address
+        bool successful
+        datetime created_at
+    }
     AUDIT_LOG {
         string action
         string module
@@ -147,13 +156,18 @@ sequenceDiagram
 
 ## Security model
 
-* **Authentication:** email + password; 5 failed attempts per email (or 20 per
-  IP) in 15 minutes locks sign-in for the rest of the window. New accounts are
+* **Authentication:** email + password; 5 failed attempts per email since its
+  last successful sign-in (or 20 per IP) within 15 minutes locks sign-in.
+  Attempts are stored in the `LoginAttempt` table, so the limit is shared by
+  every server process. New accounts are
   inactive until an administrator approves them and picks the role.
 * **Authorisation:** each role maps to a Django permission group
   (`accounts/roles.py`); views check model permissions.
-* **Data segregation:** `accounts/scoping.py` limits every resident-linked
-  query to the facilities the user works in or manages. Lookups outside scope
+* **Data segregation:** every resident and incident stores its facility (taken
+  from the room or resident automatically, chosen explicitly otherwise).
+  `accounts/scoping.py` limits every resident-linked query to the facilities
+  the user works in or manages; records without a facility are visible to
+  administrators only. Lookups outside scope
   return 404 so record existence is not leaked; form dropdowns are filtered so
   submitting another facility's id fails validation.
 * **Audit:** create/update/delete on clinical and governance models, sign-ins,
@@ -168,9 +182,10 @@ sequenceDiagram
 
 * The resident risk score weights are design choices, not a validated clinical
   instrument.
-* Sign-in throttling uses Django's cache. The default cache is per process, so
-  with several gunicorn workers each worker counts separately; a shared cache
-  (e.g. Redis) would make the limit exact.
 * SQLite suits a single facility server. Multiple application servers would
   need a client–server database.
-* Incidents not linked to a resident are visible to staff of every facility.
+* Rooms that were already over capacity before the capacity check existed are
+  not changed automatically (that needs a decision about who moves). They raise
+  a "Room over capacity" alert, are badged on the facility page, and are listed
+  by `python manage.py occupancy_report`, which also lists residents without a
+  facility.
