@@ -102,7 +102,7 @@ Medication Administration History | CareCore
             </h3>
 
             <span class="card-subtitle">
-                {{ administrations|length }}
+                {{ page.paginator.count }}
                 record{{ administrations|length|pluralize }}
             </span>
 
@@ -246,5 +246,7 @@ Medication Administration History | CareCore
     </div>
 
 </div>
+
+{% include "partials/pagination.html" %}
 
 {% endblock %}

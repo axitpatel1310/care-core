@@ -22,6 +22,11 @@
     </div>
 
     <div class="detail-actions">
+        {% if perms.observations.change_observation %}
+        <a href="{% url 'observation_amend' observation.pk %}" class="btn btn-secondary">
+            Amend
+        </a>
+        {% endif %}
         {% if perms.observations.delete_observation %}
         <a href="{% url 'observation_delete' observation.pk %}" class="btn btn-danger">
             Delete
@@ -31,6 +36,14 @@
 
 </div>
 
+
+{% if observation.amended_at %}
+<div class="message warning">
+    Amended {{ observation.amended_at|date:"d M Y, H:i" }} by {{ observation.amended_by|default:"unknown user" }}:
+    {{ observation.amendment_reason }}
+    {% if user.role == "admin" %}(original values are in the <a href="{% url 'audit_log' %}?module=observations" class="table-link">audit log</a>){% endif %}
+</div>
+{% endif %}
 
 <div class="news2-banner news2-banner-{{ observation.risk_level }}">
 

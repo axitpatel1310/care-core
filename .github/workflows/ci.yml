@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: System checks
+        run: python manage.py check
+
+      - name: Migrations are up to date
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Production settings check
+        env:
+          CARECORE_DEBUG: "false"
+          CARECORE_SECRET_KEY: ci-only-not-secret-0123456789abcdefghijklmnopqrstuvwxyz
+          CARECORE_ALLOWED_HOSTS: carecore.example.org
+        run: python manage.py check --deploy --fail-level WARNING
+
+      - name: Tests
+        run: python manage.py test --parallel auto

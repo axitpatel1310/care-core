@@ -2,6 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.utils import timezone
 
+from accounts.scoping import scope_for_model
 from residents.models import Resident
 from staff.models import StaffMember
 from appointments.models import Appointment
@@ -15,20 +16,20 @@ def dashboard(request):
 
     today = timezone.localdate()
 
-    residents_count = Resident.objects.filter(
+    residents_count = scope_for_model(Resident.objects.all(), request.user).filter(
         status="active"
     ).count()
 
-    staff_count = StaffMember.objects.count()
+    staff_count = scope_for_model(StaffMember.objects.all(), request.user).count()
 
-    appointments_today = Appointment.objects.filter(
+    appointments_today = scope_for_model(Appointment.objects.all(), request.user).filter(
         appointment_date=today
     ).select_related(
         "resident",
         "assigned_staff",
     )
 
-    open_incidents = Incident.objects.filter(
+    open_incidents = scope_for_model(Incident.objects.all(), request.user).filter(
         status__in=[
             "open",
             "investigating",
@@ -37,7 +38,7 @@ def dashboard(request):
         "resident",
     )
 
-    critical_incidents = Incident.objects.filter(
+    critical_incidents = scope_for_model(Incident.objects.all(), request.user).filter(
         severity="critical",
     ).exclude(
         status="resolved"
@@ -51,7 +52,9 @@ def dashboard(request):
 
     if request.user.has_perm("residents.view_resident"):
         risk_assessments = assess_residents(
-            Resident.objects.filter(status="active").select_related("room")
+            scope_for_model(Resident.objects.all(), request.user)
+            .filter(status="active")
+            .select_related("room")
         )
 
     context = {
@@ -70,7 +73,7 @@ def dashboard(request):
             1 for item in risk_assessments if item.band == BAND_HIGH
         ),
 
-        "overdue_tasks_count": CareTask.objects.filter(
+        "overdue_tasks_count": scope_for_model(CareTask.objects.all(), request.user).filter(
             status__in=["pending", "in_progress"],
             due_date__lt=today,
         ).count(),

@@ -1,7 +1,6 @@
 from django import forms
-from residents.models import Resident
-from .models import StaffMember, ResidentStaffAssignment
-from .models import StaffMember
+
+from .models import ResidentStaffAssignment, StaffMember
 
 
 class StaffMemberForm(forms.ModelForm):

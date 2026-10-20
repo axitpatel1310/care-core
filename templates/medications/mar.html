@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}MAR – {{ resident }} | CareCore{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <a href="{% url 'resident_detail' resident.pk %}" class="back-link">← {{ resident }}</a>
+        <h2>Medication Administration Record</h2>
+        <p>{{ days.0|date:"d M Y" }} – {{ days|last|date:"d M Y" }}</p>
+    </div>
+
+    <div class="detail-actions no-print">
+        <a href="?start={{ previous_start|date:'Y-m-d' }}" class="btn btn-secondary">← Previous week</a>
+        <a href="?start={{ next_start|date:'Y-m-d' }}" class="btn btn-secondary">Next week →</a>
+        <button type="button" class="btn btn-primary" onclick="window.print()">Print</button>
+    </div>
+</div>
+
+
+<div class="card">
+
+    <div class="table-wrapper">
+        <table class="mar-table">
+            <thead>
+                <tr>
+                    <th>Medication</th>
+                    <th>Time</th>
+                    {% for day in days %}
+                    <th class="{% if day == today %}mar-today{% endif %}">{{ day|date:"D" }}<br>{{ day|date:"d M" }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td>
+                        {% ifchanged row.medication.pk %}
+                        <a href="{% url 'medication_detail' row.medication.pk %}" class="table-link"><strong>{{ row.medication.name }}</strong></a><br>
+                        <small class="text-muted">{{ row.medication.dose }} · {{ row.medication.route }}</small>
+                        {% endifchanged %}
+                    </td>
+                    <td><strong>{{ row.time|time:"H:i" }}</strong></td>
+                    {% for dose in row.cells %}
+                    <td class="mar-cell {% if dose %}dose-{{ dose.state }}{% else %}mar-inactive{% endif %}">
+                        {% if dose %}
+                            {% if dose.administration %}
+                            <a href="{% url 'administration_detail' dose.administration.pk %}" title="{{ dose.state_label }} {{ dose.administration.administered_at|date:'H:i' }} – {{ dose.administration.administered_by|default:'' }}">
+                                {{ dose.state_label }}
+                            </a>
+                            {% elif dose.state != "upcoming" and perms.medications.add_medicationadministration %}
+                            <a href="{% url 'administration_create' dose.medication.pk %}?scheduled_for={{ dose.scheduled_for|date:'c' }}">{{ dose.state_label }}</a>
+                            {% else %}
+                            {{ dose.state_label }}
+                            {% endif %}
+                        {% else %}
+                        –
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% empty %}
+                <tr><td colspan="9"><div class="empty-state">No scheduled medications in this week.</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card-section mar-legend">
+        <span class="dose-badge dose-administered">Given</span>
+        <span class="dose-badge dose-refused">Refused</span>
+        <span class="dose-badge dose-withheld">Withheld</span>
+        <span class="dose-badge dose-missed">Missed</span>
+        <span class="dose-badge dose-overdue">Overdue (not recorded)</span>
+        <span class="dose-badge dose-due">Due now</span>
+        <span class="dose-badge dose-upcoming">Upcoming</span>
+    </div>
+
+</div>
+
+
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h3>PRN and unscheduled doses</h3>
+            <span class="card-subtitle">Recorded during this week</span>
+        </div>
+    </div>
+    <div class="list">
+        {% for administration in prn_given %}
+        <div class="list-item">
+            <div class="list-content">
+                <strong>{{ administration.medication.name }} – {{ administration.get_status_display }}</strong>
+                <span>{{ administration.administered_at|date:"D d M, H:i" }} · {{ administration.administered_by|default:"—" }}{% if administration.notes %} · {{ administration.notes }}{% endif %}</span>
+            </div>
+        </div>
+        {% empty %}
+        <div class="empty-state">None recorded.</div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}

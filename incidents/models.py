@@ -33,6 +33,15 @@ class Incident(models.Model):
         related_name="incidents",
     )
 
+    facility = models.ForeignKey(
+        "facility.Facility",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="incidents",
+        help_text="Set automatically from the resident; required for incidents not involving a resident.",
+    )
+
     reported_by = models.ForeignKey(
         "staff.StaffMember",
         on_delete=models.SET_NULL,
@@ -67,3 +76,10 @@ class Incident(models.Model):
 
     def __str__(self):
         return f"Incident #{self.id} - {self.get_category_display()}"
+
+    def save(self, *args, **kwargs):
+
+        if self.resident_id and self.resident.facility_id:
+            self.facility_id = self.resident.facility_id
+
+        super().save(*args, **kwargs)

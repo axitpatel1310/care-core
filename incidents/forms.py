@@ -10,6 +10,7 @@ class IncidentForm(forms.ModelForm):
 
         fields = [
             "resident",
+            "facility",
             "incident_date",
             "category",
             "severity",
@@ -56,9 +57,19 @@ class IncidentForm(forms.ModelForm):
             ),
         }
 
-from django import forms
+    def clean(self):
 
-from .models import Incident
+        cleaned_data = super().clean()
+
+        resident = cleaned_data.get("resident")
+
+        if resident and resident.facility_id:
+            cleaned_data["facility"] = resident.facility
+        elif not cleaned_data.get("facility"):
+            self.add_error("facility", "Choose the facility where this happened.")
+
+        return cleaned_data
+
 
 class IncidentInvestigationForm(forms.ModelForm):
 

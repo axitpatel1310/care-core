@@ -30,6 +30,15 @@
 
     <div class="resident-header-actions">
 
+        {% if perms.medications.view_medicationadministration %}
+        <a
+            href="{% url 'resident_mar' medication.resident.pk %}"
+            class="btn btn-secondary"
+        >
+            MAR Chart
+        </a>
+        {% endif %}
+
         {% if perms.medications.add_medicationadministration %}
 
         <a
@@ -55,6 +64,38 @@
     </div>
 
 </div>
+{% if todays_doses %}
+<div class="card">
+
+    <div class="card-header">
+        <div>
+            <h3>Today's Doses</h3>
+            <span class="card-subtitle">{{ todays_doses|length }} scheduled</span>
+        </div>
+    </div>
+
+    <div class="list">
+        {% for dose in todays_doses %}
+        <div class="list-item">
+            <div class="list-content">
+                <strong>{{ dose.scheduled_for|time:"H:i" }}</strong>
+                <span>
+                    {% if dose.administration %}
+                    Recorded {{ dose.administration.administered_at|date:"H:i" }} by {{ dose.administration.administered_by|default:"—" }}
+                    {% else %}Not yet recorded{% endif %}
+                </span>
+            </div>
+            <span class="dose-badge dose-{{ dose.state }}">{{ dose.state_label }}</span>
+            {% if not dose.administration and perms.medications.add_medicationadministration %}
+            <a href="{% url 'administration_create' medication.pk %}?scheduled_for={{ dose.scheduled_for|date:'c' }}" class="btn btn-primary btn-small">Record</a>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+{% endif %}
+
 <div class="card">
 
     <div class="card-header">
@@ -180,6 +221,13 @@
         </div>
 
         <div>
+            <span>Dose times</span>
+            <strong>
+                {{ medication.schedule_display }}
+            </strong>
+        </div>
+
+        <div>
             <span>Status</span>
             <strong>
                 {{ medication.get_status_display }}
@@ -191,110 +239,6 @@
 </div>
 
 
-<div class="card">
 
-    <div class="card-header">
-
-        <div>
-
-            <h3>
-                Administration History
-            </h3>
-
-            <span class="card-subtitle">
-                Medication Administration Record
-            </span>
-
-        </div>
-
-        <a
-            href="{% url 'administration_history' medication.pk %}"
-            class="table-link"
-        >
-            Full history →
-        </a>
-
-    </div>
-
-
-    <div class="table-wrapper">
-
-        <table>
-
-            <thead>
-
-                <tr>
-
-                    <th>
-                        Date & Time
-                    </th>
-
-                    <th>
-                        Staff
-                    </th>
-
-                    <th>
-                        Status
-                    </th>
-
-                    <th>
-                        Notes
-                    </th>
-
-                </tr>
-
-            </thead>
-
-            <tbody>
-
-                {% for administration in administrations|slice:":10" %}
-
-                <tr>
-
-                    <td>
-                        {{ administration.administered_at|date:"d M Y, H:i" }}
-                    </td>
-
-                    <td>
-
-                        {% if administration.administered_by %}
-                            {{ administration.administered_by }}
-                        {% else %}
-                            —
-                        {% endif %}
-
-                    </td>
-
-                    <td>
-                        {{ administration.get_status_display }}
-                    </td>
-
-                    <td>
-                        {{ administration.notes|default:"—" }}
-                    </td>
-
-                </tr>
-
-                {% empty %}
-
-                <tr>
-
-                    <td colspan="4">
-                        <div class="empty-state">
-                            No administration records yet.
-                        </div>
-                    </td>
-
-                </tr>
-
-                {% endfor %}
-
-            </tbody>
-
-        </table>
-
-    </div>
-
-</div>
 
 {% endblock %}

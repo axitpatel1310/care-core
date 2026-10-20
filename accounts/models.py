@@ -82,3 +82,22 @@ class AuditLog(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.action} - {self.module}"
+
+
+class LoginAttempt(models.Model):
+    """
+    Sign-in attempts, stored in the database so the throttle is shared by
+    every server process (an in-memory cache would count per process).
+    """
+
+    email = models.CharField(max_length=254, db_index=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True, db_index=True)
+    successful = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        outcome = "success" if self.successful else "failure"
+        return f"{self.email} {outcome} at {self.created_at:%Y-%m-%d %H:%M}"

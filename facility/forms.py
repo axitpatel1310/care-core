@@ -13,8 +13,6 @@ class FacilityForm(forms.ModelForm):
             "phone",
             "email",
             "manager",
-            "number_of_rooms",
-            "occupancy",
             "status",
         ]
 
@@ -79,7 +77,6 @@ class RoomForm(forms.ModelForm):
             "ward",
             "room_number",
             "capacity",
-            "occupied",
         ]
 
         widgets = {
@@ -89,3 +86,24 @@ class RoomForm(forms.ModelForm):
                 }
             ),
         }
+
+    def clean_capacity(self):
+
+        capacity = self.cleaned_data["capacity"]
+
+        if self.instance.pk:
+
+            from .occupancy import occupants
+
+            current = occupants(self.instance).count()
+
+            if capacity < current:
+                raise forms.ValidationError(
+                    f"{current} residents currently occupy this room; "
+                    "move residents before reducing capacity."
+                )
+
+        if capacity < 1:
+            raise forms.ValidationError("A room must hold at least one resident.")
+
+        return capacity

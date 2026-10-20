@@ -94,11 +94,11 @@
     {% if page.paginator.num_pages > 1 %}
     <div class="pagination">
         {% if page.has_previous %}
-        <a class="btn btn-secondary btn-small" href="?{{ filter_query }}&page={{ page.previous_page_number }}">← Newer</a>
+        <a class="btn btn-secondary btn-small" href="?{% if filter_query %}{{ filter_query }}&amp;{% endif %}page={{ page.previous_page_number }}">← Newer</a>
         {% endif %}
         <span class="text-muted">Page {{ page.number }} of {{ page.paginator.num_pages }} · {{ page.paginator.count }} entries</span>
         {% if page.has_next %}
-        <a class="btn btn-secondary btn-small" href="?{{ filter_query }}&page={{ page.next_page_number }}">Older →</a>
+        <a class="btn btn-secondary btn-small" href="?{% if filter_query %}{{ filter_query }}&amp;{% endif %}page={{ page.next_page_number }}">Older →</a>
         {% endif %}
     </div>
     {% endif %}

@@ -9,14 +9,18 @@ they are allowed to view.
 from dataclasses import dataclass
 from datetime import timedelta
 
+from django.db.models import F
 from django.urls import reverse
 from django.utils import timezone
 
+from accounts.scoping import scope_for_model
 from appointments.models import Appointment
 from care.models import Assessment, CarePlan, CareTask
 from compliance.models import ComplianceDocument, CorrectiveAction, Risk
+from facility.models import Room
 from incidents.models import Incident
 from medications.models import Medication, MedicationAdministration
+from medications.schedule import overdue_doses
 from observations.models import Observation
 from observations.news2 import CLINICAL_RESPONSE, RISK_HIGH, RISK_LOW, RISK_MEDIUM
 
@@ -56,7 +60,11 @@ RULES = []
 
 
 def rule(permission):
-    """Register an alert rule that is only evaluated for users holding `permission`."""
+    """
+    Register an alert rule that is only evaluated for users holding `permission`.
+    Rules receive the current time and a `scope` function that limits a
+    queryset to the user's facilities.
+    """
 
     def decorator(func):
         RULES.append((permission, func))
@@ -65,13 +73,13 @@ def rule(permission):
     return decorator
 
 
-def latest_observations():
+def latest_observations(scope):
     """The most recent observation for every resident who has one."""
 
     latest = {}
 
     for observation in (
-        Observation.objects
+        scope(Observation.objects.all())
         .filter(resident__status="active")
         .select_related("resident")
         .order_by("resident_id", "-recorded_at")
@@ -82,9 +90,9 @@ def latest_observations():
 
 
 @rule("observations.view_observation")
-def deteriorating_residents(now):
+def deteriorating_residents(now, scope):
 
-    for observation in latest_observations():
+    for observation in latest_observations(scope):
 
         if observation.recorded_at < now - timedelta(hours=24):
             continue
@@ -108,10 +116,10 @@ def deteriorating_residents(now):
 
 
 @rule("observations.view_observation")
-def observations_overdue(now):
+def observations_overdue(now, scope):
     """Repeat observations not taken within the NEWS2 monitoring interval."""
 
-    for observation in latest_observations():
+    for observation in latest_observations(scope):
 
         if observation.risk_level == RISK_LOW:
             continue
@@ -137,10 +145,10 @@ def observations_overdue(now):
 
 
 @rule("incidents.view_incident")
-def serious_open_incidents(now):
+def serious_open_incidents(now, scope):
 
     incidents = (
-        Incident.objects
+        scope(Incident.objects.all())
         .filter(severity__in=["high", "critical"])
         .exclude(status="resolved")
         .select_related("resident")
@@ -162,12 +170,12 @@ def serious_open_incidents(now):
 
 
 @rule("care.view_caretask")
-def overdue_care_tasks(now):
+def overdue_care_tasks(now, scope):
 
     today = timezone.localdate(now)
 
     tasks = (
-        CareTask.objects
+        scope(CareTask.objects.all())
         .filter(status__in=["pending", "in_progress"])
         .filter(due_date__lte=today)
         .select_related("resident")
@@ -197,10 +205,10 @@ def overdue_care_tasks(now):
 
 
 @rule("medications.view_medicationadministration")
-def doses_not_given(now):
+def doses_not_given(now, scope):
 
     administrations = (
-        MedicationAdministration.objects
+        scope(MedicationAdministration.objects.all())
         .filter(
             status__in=["missed", "refused", "withheld"],
             administered_at__gte=now - timedelta(hours=24),
@@ -225,13 +233,30 @@ def doses_not_given(now):
         )
 
 
+@rule("medications.view_medicationadministration")
+def scheduled_doses_overdue(now, scope):
+
+    for dose in overdue_doses(now=now, queryset=scope(Medication.objects.all())):
+        yield Alert(
+            severity=WARNING,
+            category="Medication",
+            title=f"Dose overdue: {dose.medication.name}",
+            message=(
+                f"{dose.medication.resident} – due "
+                f"{timezone.localtime(dose.scheduled_for):%H:%M}, nothing recorded."
+            ),
+            url=reverse("medication_due_today") + "?state=outstanding",
+            resident=dose.medication.resident,
+        )
+
+
 @rule("medications.view_medication")
-def medications_ending_soon(now):
+def medications_ending_soon(now, scope):
 
     today = timezone.localdate(now)
 
     medications = (
-        Medication.objects
+        scope(Medication.objects.all())
         .filter(
             status="active",
             end_date__gte=today,
@@ -252,12 +277,12 @@ def medications_ending_soon(now):
 
 
 @rule("care.view_careplan")
-def care_plan_reviews_due(now):
+def care_plan_reviews_due(now, scope):
 
     today = timezone.localdate(now)
 
     plans = (
-        CarePlan.objects
+        scope(CarePlan.objects.all())
         .filter(status="active", next_review__lt=today)
         .select_related("resident")
     )
@@ -274,12 +299,12 @@ def care_plan_reviews_due(now):
 
 
 @rule("care.view_assessment")
-def assessment_reviews_due(now):
+def assessment_reviews_due(now, scope):
 
     today = timezone.localdate(now)
 
     assessments = (
-        Assessment.objects
+        scope(Assessment.objects.all())
         .filter(next_review__lt=today)
         .select_related("resident")
     )
@@ -296,12 +321,12 @@ def assessment_reviews_due(now):
 
 
 @rule("appointments.view_appointment")
-def unconfirmed_appointments(now):
+def unconfirmed_appointments(now, scope):
 
     today = timezone.localdate(now)
 
     appointments = (
-        Appointment.objects
+        scope(Appointment.objects.all())
         .filter(
             appointment_date__gte=today,
             appointment_date__lte=today + timedelta(days=1),
@@ -324,8 +349,30 @@ def unconfirmed_appointments(now):
         )
 
 
+@rule("facility.view_room")
+def rooms_over_capacity(now, scope):
+
+    rooms = (
+        scope(Room.objects.all())
+        .filter(occupied__gt=F("capacity"))
+        .select_related("ward__facility")
+    )
+
+    for room in rooms:
+        yield Alert(
+            severity=WARNING,
+            category="Facility",
+            title=f"Room {room} over capacity",
+            message=(
+                f"{room.ward} has {room.occupied} residents in a room for {room.capacity}; "
+                "move a resident or increase the capacity."
+            ),
+            url=reverse("facility_detail", args=[room.ward.facility_id]),
+        )
+
+
 @rule("compliance.view_correctiveaction")
-def overdue_corrective_actions(now):
+def overdue_corrective_actions(now, scope):
 
     actions = CorrectiveAction.objects.filter(
         status__in=["open", "in_progress"],
@@ -343,7 +390,7 @@ def overdue_corrective_actions(now):
 
 
 @rule("compliance.view_compliancedocument")
-def documents_due_review(now):
+def documents_due_review(now, scope):
 
     documents = ComplianceDocument.objects.filter(
         status="active",
@@ -361,7 +408,7 @@ def documents_due_review(now):
 
 
 @rule("compliance.view_risk")
-def risk_reviews_due(now):
+def risk_reviews_due(now, scope):
 
     risks = Risk.objects.exclude(status="resolved").filter(
         review_date__lt=timezone.localdate(now),
@@ -383,9 +430,12 @@ def alerts_for(user, now=None):
 
     alerts = []
 
+    def scope(queryset):
+        return scope_for_model(queryset, user)
+
     for permission, evaluate in RULES:
         if user.has_perm(permission):
-            alerts.extend(evaluate(now))
+            alerts.extend(evaluate(now, scope))
 
     alerts.sort(key=lambda alert: SEVERITY_ORDER[alert.severity])
 

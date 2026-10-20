@@ -58,3 +58,16 @@ class ObservationForm(forms.ModelForm):
             )
 
         return cleaned_data
+
+
+class ObservationAmendForm(ObservationForm):
+    """Correct a recorded observation; the reason is kept with the record and the audit trail keeps the old values."""
+
+    amendment_reason = forms.CharField(
+        label="Reason for amendment",
+        widget=forms.Textarea(attrs={"rows": 2, "placeholder": "e.g. Transcription error: pulse was 82, not 28."}),
+        min_length=10,
+    )
+
+    class Meta(ObservationForm.Meta):
+        fields = [field for field in ObservationForm.Meta.fields if field != "resident"]

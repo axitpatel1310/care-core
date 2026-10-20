@@ -1,3 +1,5 @@
+import os
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import (
@@ -5,6 +7,7 @@ from django.contrib.auth.mixins import (
     PermissionRequiredMixin,
 )
 from django.core.exceptions import PermissionDenied
+from django.http import FileResponse, Http404
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse, reverse_lazy
@@ -101,6 +104,19 @@ class CompliancePermissionMixin(LoginRequiredMixin, PermissionRequiredMixin):
         return [f"compliance.{self.action}_{self.model._meta.model_name}"]
 
 
+class PaginatedListMixin:
+    """Expose the page in the shape partials/pagination.html expects."""
+
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        params = self.request.GET.copy()
+        params.pop("page", None)
+        context["page"] = context.get("page_obj")
+        context["filter_query"] = params.urlencode()
+        return context
+
+
 class ComplianceFormMixin:
     template_name = "compliance/form.html"
     success_message = "Saved successfully."
@@ -135,7 +151,7 @@ class ComplianceDeleteView(CompliancePermissionMixin, generic.DeleteView):
 # Risk register
 # --------------------------------------------------------------------------
 
-class RiskList(CompliancePermissionMixin, generic.ListView):
+class RiskList(CompliancePermissionMixin, PaginatedListMixin, generic.ListView):
     model = Risk
     template_name = "compliance/risk_list.html"
     context_object_name = "risks"
@@ -198,7 +214,7 @@ class RiskDelete(ComplianceDeleteView):
 # Policies & documents
 # --------------------------------------------------------------------------
 
-class DocumentList(CompliancePermissionMixin, generic.ListView):
+class DocumentList(CompliancePermissionMixin, PaginatedListMixin, generic.ListView):
     model = ComplianceDocument
     template_name = "compliance/document_list.html"
     context_object_name = "documents"
@@ -226,6 +242,25 @@ class DocumentDetail(CompliancePermissionMixin, generic.DetailView):
         context = super().get_context_data(**kwargs)
         context["today"] = timezone.localdate()
         return context
+
+
+@login_required
+def document_download(request, pk):
+    """Stream an uploaded policy file to users allowed to view compliance documents."""
+
+    if not request.user.has_perm("compliance.view_compliancedocument"):
+        raise PermissionDenied
+
+    document = get_object_or_404(ComplianceDocument, pk=pk)
+
+    if not document.file:
+        raise Http404("No file attached.")
+
+    return FileResponse(
+        document.file.open("rb"),
+        as_attachment=True,
+        filename=os.path.basename(document.file.name),
+    )
 
 
 class DocumentCreate(CompliancePermissionMixin, ComplianceFormMixin, generic.CreateView):
@@ -262,7 +297,7 @@ class DocumentDelete(ComplianceDeleteView):
 # Audits & controls
 # --------------------------------------------------------------------------
 
-class AuditList(CompliancePermissionMixin, generic.ListView):
+class AuditList(CompliancePermissionMixin, PaginatedListMixin, generic.ListView):
     model = Audit
     template_name = "compliance/audit_list.html"
     context_object_name = "audits"
@@ -368,7 +403,7 @@ class ControlDelete(ComplianceDeleteView):
 # Corrective actions
 # --------------------------------------------------------------------------
 
-class ActionList(CompliancePermissionMixin, generic.ListView):
+class ActionList(CompliancePermissionMixin, PaginatedListMixin, generic.ListView):
     model = CorrectiveAction
     template_name = "compliance/action_list.html"
     context_object_name = "actions"

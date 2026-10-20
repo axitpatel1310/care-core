@@ -1,23 +1,22 @@
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth.decorators import permission_required
+from django.contrib.auth.decorators import (
+    login_required,
+    permission_required,
+)
 from django.db.models import Q
-from django.shortcuts import get_object_or_404, redirect, render
-from .models import Resident, ResidentContact
-from care.models import CarePlan
+from django.shortcuts import redirect, render
+
+from accounts.scoping import (
+    get_visible_object_or_404,
+    limit_resident_choices,
+    scope_for_model,
+)
+from carecore.pagination import paginate
 from insights.risk import assess_resident
-from .forms import ResidentForm
-from .models import Resident
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required, permission_required
-from django.db.models import Q
-from django.shortcuts import get_object_or_404, redirect, render
 
-from care.models import CarePlan, Assessment, CognitiveBehaviouralSupport
-from medications.models import Medication, MedicationAdministration
-
-from .forms import ResidentForm, ResidentContactForm
+from .forms import ResidentContactForm, ResidentForm
 from .models import Resident, ResidentContact
+
 
 @login_required
 @permission_required(
@@ -26,10 +25,13 @@ from .models import Resident, ResidentContact
 )
 def resident_list(request):
 
-    residents = Resident.objects.select_related(
-        "room",
-        "room__ward",
-    ).all()
+    residents = scope_for_model(
+        Resident.objects.select_related(
+            "room",
+            "room__ward",
+        ),
+        request.user,
+    )
 
     query = request.GET.get("q", "").strip()
     status = request.GET.get("status", "").strip()
@@ -56,11 +58,15 @@ def resident_list(request):
         "first_name",
     )
 
+    page, filter_query = paginate(request, residents)
+
     return render(
         request,
         "residents/list.html",
         {
-            "residents": residents,
+            "residents": page,
+            "page": page,
+            "filter_query": filter_query,
             "query": query,
             "status": status,
             "care_level": care_level,
@@ -78,6 +84,7 @@ def resident_create(request):
     if request.method == "POST":
 
         form = ResidentForm(request.POST)
+        limit_resident_choices(form, request.user)
 
         if form.is_valid():
 
@@ -96,6 +103,7 @@ def resident_create(request):
     else:
 
         form = ResidentForm()
+        limit_resident_choices(form, request.user)
 
     return render(
         request,
@@ -108,21 +116,11 @@ def resident_create(request):
     )
 
 
-from django.contrib.auth.decorators import login_required, permission_required
-from django.shortcuts import get_object_or_404, render
-
-from .models import Resident
-
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404, render
-
-from .models import Resident
-
-
 @login_required
 def resident_detail(request, pk):
 
-    resident = get_object_or_404(
+    resident = get_visible_object_or_404(
+        request.user,
         Resident.objects.prefetch_related(
             "contacts",
             "care_plans",
@@ -158,7 +156,8 @@ def resident_detail(request, pk):
 )
 def resident_edit(request, pk):
 
-    resident = get_object_or_404(
+    resident = get_visible_object_or_404(
+        request.user,
         Resident,
         pk=pk,
     )
@@ -169,6 +168,7 @@ def resident_edit(request, pk):
             request.POST,
             instance=resident,
         )
+        limit_resident_choices(form, request.user)
 
         if form.is_valid():
 
@@ -189,6 +189,7 @@ def resident_edit(request, pk):
         form = ResidentForm(
             instance=resident,
         )
+        limit_resident_choices(form, request.user)
 
     return render(
         request,
@@ -209,7 +210,8 @@ def resident_edit(request, pk):
 )
 def resident_delete(request, pk):
 
-    resident = get_object_or_404(
+    resident = get_visible_object_or_404(
+        request.user,
         Resident,
         pk=pk,
     )
@@ -240,7 +242,8 @@ def resident_delete(request, pk):
 )
 def contact_detail(request, pk):
 
-    contact = get_object_or_404(
+    contact = get_visible_object_or_404(
+        request.user,
         ResidentContact.objects.select_related(
             "resident",
         ),
@@ -263,7 +266,8 @@ def contact_detail(request, pk):
 )
 def contact_create(request, resident_pk):
 
-    resident = get_object_or_404(
+    resident = get_visible_object_or_404(
+        request.user,
         Resident,
         pk=resident_pk,
     )
@@ -273,6 +277,7 @@ def contact_create(request, resident_pk):
         form = ResidentContactForm(
             request.POST
         )
+        limit_resident_choices(form, request.user)
 
         if form.is_valid():
 
@@ -297,6 +302,7 @@ def contact_create(request, resident_pk):
     else:
 
         form = ResidentContactForm()
+        limit_resident_choices(form, request.user)
 
     return render(
         request,
@@ -317,7 +323,8 @@ def contact_create(request, resident_pk):
 )
 def contact_edit(request, pk):
 
-    contact = get_object_or_404(
+    contact = get_visible_object_or_404(
+        request.user,
         ResidentContact.objects.select_related(
             "resident",
         ),
@@ -330,6 +337,7 @@ def contact_edit(request, pk):
             request.POST,
             instance=contact,
         )
+        limit_resident_choices(form, request.user)
 
         if form.is_valid():
 
@@ -350,6 +358,7 @@ def contact_edit(request, pk):
         form = ResidentContactForm(
             instance=contact,
         )
+        limit_resident_choices(form, request.user)
 
     return render(
         request,
@@ -363,7 +372,6 @@ def contact_edit(request, pk):
         },
     )
 
-from .models import Resident, ResidentContact
 
 @login_required
 @permission_required(
@@ -372,7 +380,8 @@ from .models import Resident, ResidentContact
 )
 def contact_delete(request, pk):
 
-    contact = get_object_or_404(
+    contact = get_visible_object_or_404(
+        request.user,
         ResidentContact.objects.select_related(
             "resident",
         ),

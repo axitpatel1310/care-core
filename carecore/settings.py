@@ -57,6 +57,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -90,7 +91,8 @@ WSGI_APPLICATION = "carecore.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        # SQLite is used in every environment; point CARECORE_DB_PATH at a persistent volume in Docker.
+        "NAME": os.environ.get("CARECORE_DB_PATH", BASE_DIR / "db.sqlite3"),
     }
 }
 
@@ -121,19 +123,61 @@ STATICFILES_DIRS = [
 ]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-MEDIA_URL = "media/"
-MEDIA_ROOT = BASE_DIR / "media"
+# Uploaded files are not publicly served: they are streamed by permission-checked views.
+MEDIA_ROOT = Path(os.environ.get("CARECORE_MEDIA_ROOT", BASE_DIR / "media"))
+
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": (
+            "django.contrib.staticfiles.storage.StaticFilesStorage"
+            if DEBUG
+            else "whitenoise.storage.CompressedManifestStaticFilesStorage"
+        ),
+    },
+}
+
+# Password-reset emails print to the console in development; set CARECORE_EMAIL_* for SMTP.
+EMAIL_BACKEND = os.environ.get(
+    "CARECORE_EMAIL_BACKEND",
+    "django.core.mail.backends.console.EmailBackend",
+)
+EMAIL_HOST = os.environ.get("CARECORE_EMAIL_HOST", "localhost")
+EMAIL_PORT = int(os.environ.get("CARECORE_EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.environ.get("CARECORE_EMAIL_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("CARECORE_EMAIL_PASSWORD", "")
+EMAIL_USE_TLS = env_bool("CARECORE_EMAIL_USE_TLS", True)
+DEFAULT_FROM_EMAIL = os.environ.get("CARECORE_FROM_EMAIL", "CareCore <no-reply@carecore.local>")
+PASSWORD_RESET_TIMEOUT = 60 * 60  # one hour
 
 SESSION_COOKIE_AGE = 60 * 60 * 8  # one shift
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 if not DEBUG:
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = env_bool("CARECORE_SECURE_COOKIES", True)
+    CSRF_COOKIE_SECURE = SESSION_COOKIE_SECURE
     SECURE_SSL_REDIRECT = env_bool("CARECORE_SSL_REDIRECT", True)
     SECURE_HSTS_SECONDS = 60 * 60 * 24 * 30
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    # Preloading is hard to undo, so it is opt-in per deployment.
+    SECURE_HSTS_PRELOAD = env_bool("CARECORE_HSTS_PRELOAD", False)
+    if not SECURE_HSTS_PRELOAD:
+        SILENCED_SYSTEM_CHECKS = ["security.W021"]
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {"class": "logging.StreamHandler"},
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": os.environ.get("CARECORE_LOG_LEVEL", "INFO"),
+    },
+}
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

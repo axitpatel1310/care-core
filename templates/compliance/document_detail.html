@@ -12,7 +12,7 @@
     </div>
     <div class="detail-actions">
         {% if document.file %}
-        <a href="{{ document.file.url }}" class="btn btn-primary" target="_blank" rel="noopener">Open File</a>
+        <a href="{% url 'document_download' document.pk %}" class="btn btn-primary">Download File</a>
         {% endif %}
         {% if perms.compliance.change_compliancedocument %}
         <a href="{% url 'document_edit' document.pk %}" class="btn btn-secondary">Edit</a>

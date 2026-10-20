@@ -1,5 +1,5 @@
 import random
-from datetime import date, time, timedelta
+from datetime import date, datetime, time, timedelta
 
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
@@ -17,6 +17,7 @@ from care.models import (
 from medications.models import (
     Medication,
     MedicationAdministration,
+    MedicationDoseTime,
 )
 from incidents.models import Incident
 from appointments.models import Appointment
@@ -119,6 +120,20 @@ class Command(BaseCommand):
         care_user.set_password("CareCoreDemo123!")
         care_user.save()
 
+        en_user, _ = User.objects.get_or_create(
+            email="en@carecore.demo",
+            defaults={
+                "username": "carecore_en",
+                "first_name": "Priya",
+                "last_name": "Enrolled",
+                "role": "en",
+            },
+        )
+
+        en_user.role = "en"
+        en_user.set_password("CareCoreDemo123!")
+        en_user.save()
+
         # ==================================================
         # FACILITY
         # ==================================================
@@ -130,8 +145,6 @@ class Command(BaseCommand):
                 "phone": "+49 000 000000",
                 "email": "facility@carecore.demo",
                 "manager": manager,
-                "number_of_rooms": 20,
-                "occupancy": 2,
                 "status": "active",
             },
         )
@@ -149,7 +162,6 @@ class Command(BaseCommand):
             room_number="101",
             defaults={
                 "capacity": 1,
-                "occupied": 1,
             },
         )
 
@@ -158,7 +170,6 @@ class Command(BaseCommand):
             room_number="102",
             defaults={
                 "capacity": 1,
-                "occupied": 1,
             },
         )
 
@@ -187,6 +198,17 @@ class Command(BaseCommand):
                 "ward": ward,
                 "employment_status": "active",
                 "qualifications": "Personal Care Worker",
+            },
+        )
+
+        StaffMember.objects.get_or_create(
+            user=en_user,
+            defaults={
+                "employee_id": "EN001",
+                "facility": facility,
+                "ward": ward,
+                "employment_status": "active",
+                "qualifications": "Diploma of Nursing (Enrolled Nurse)",
             },
         )
 
@@ -434,6 +456,12 @@ class Command(BaseCommand):
             },
         )
 
+        for dose_time in (time(8, 0), time(20, 0)):
+            MedicationDoseTime.objects.get_or_create(
+                medication=medication,
+                time=dose_time,
+            )
+
         MedicationAdministration.objects.create(
             medication=medication,
             administered_by=rn_staff,
@@ -494,13 +522,19 @@ class Command(BaseCommand):
         # CLINICAL HISTORY & GOVERNANCE
         # ==================================================
 
+        room103, _ = Room.objects.get_or_create(
+            ward=room101.ward,
+            room_number="103",
+            defaults={"capacity": 1},
+        )
+
         resident3, _ = Resident.objects.get_or_create(
             first_name="Dorothy",
             last_name="Evans",
             defaults={
                 "date_of_birth": date(1935, 1, 27),
                 "gender": "female",
-                "room": room102,
+                "room": room103,
                 "admission_date": today - timedelta(days=400),
                 "status": "active",
                 "care_level": "complex",
@@ -636,12 +670,12 @@ class Command(BaseCommand):
         rng = random.Random(11)
 
         catalogue = [
-            ("Amlodipine", "5 mg", "Oral", "Once daily"),
-            ("Metformin", "500 mg", "Oral", "Twice daily"),
-            ("Donepezil", "10 mg", "Oral", "Once daily at night"),
+            ("Amlodipine", "5 mg", "Oral", "Once daily", ["08:00"]),
+            ("Metformin", "500 mg", "Oral", "Twice daily", ["08:00", "18:00"]),
+            ("Donepezil", "10 mg", "Oral", "Once daily at night", ["21:00"]),
         ]
 
-        for resident, (name, dose, route, frequency) in zip(residents, catalogue):
+        for resident, (name, dose, route, frequency, times) in zip(residents, catalogue):
 
             medication, _ = Medication.objects.get_or_create(
                 resident=resident,
@@ -656,29 +690,50 @@ class Command(BaseCommand):
                 },
             )
 
+            for value in times:
+                MedicationDoseTime.objects.get_or_create(
+                    medication=medication,
+                    time=time(*map(int, value.split(":"))),
+                )
+
+            # 12 weeks of recorded scheduled doses, up to (not including) today.
             for day in range(84, 0, -1):
 
-                roll = rng.random()
-                status = (
-                    "administered" if roll < 0.9
-                    else "refused" if roll < 0.95
-                    else "missed" if roll < 0.98
-                    else "withheld"
-                )
+                for value in times:
 
-                MedicationAdministration.objects.create(
-                    medication=medication,
-                    administered_by=rng.choice(staff),
-                    administered_at=now - timedelta(days=day, hours=rng.randint(0, 3)),
-                    status=status,
-                )
+                    scheduled = timezone.make_aware(
+                        datetime.combine(today - timedelta(days=day), time(*map(int, value.split(":"))))
+                    )
 
-        MedicationAdministration.objects.create(
-            medication=Medication.objects.filter(resident=residents[2]).first(),
-            administered_by=staff[0],
-            administered_at=now - timedelta(hours=3),
-            status="refused",
-            notes="Resident drowsy and declined tablets.",
+                    roll = rng.random()
+                    status = (
+                        "administered" if roll < 0.9
+                        else "refused" if roll < 0.95
+                        else "missed" if roll < 0.98
+                        else "withheld"
+                    )
+
+                    MedicationAdministration.objects.create(
+                        medication=medication,
+                        administered_by=rng.choice(staff),
+                        administered_at=scheduled + timedelta(minutes=rng.randint(-20, 45)),
+                        scheduled_for=scheduled,
+                        status=status,
+                        notes="" if status == "administered" else "Reason recorded on the paper MAR.",
+                    )
+
+        Medication.objects.get_or_create(
+            resident=residents[0],
+            name="Paracetamol PRN",
+            defaults={
+                "dose": "1 g",
+                "route": "Oral",
+                "frequency": "Up to four times daily as required for pain",
+                "as_required": True,
+                "start_date": today - timedelta(days=30),
+                "prescriber": "Dr. Demo",
+                "status": "active",
+            },
         )
 
     def seed_compliance(self, manager, owner, today):

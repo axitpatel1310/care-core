@@ -24,6 +24,12 @@ urlpatterns = [
     ),
 
     path(
+        "<int:pk>/amend/",
+        views.observation_amend,
+        name="observation_amend",
+    ),
+
+    path(
         "<int:pk>/delete/",
         views.observation_delete,
         name="observation_delete",

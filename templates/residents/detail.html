@@ -55,6 +55,15 @@
 
     <div class="resident-header-actions">
 
+        {% if perms.medications.view_medicationadministration %}
+        <a
+            href="{% url 'resident_mar' resident.pk %}"
+            class="btn btn-secondary"
+        >
+            MAR Chart
+        </a>
+        {% endif %}
+
         {% if perms.observations.add_observation %}
         <a
             href="{% url 'observation_create' %}?resident={{ resident.pk }}"

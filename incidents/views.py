@@ -1,13 +1,22 @@
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib.auth.decorators import (
+    login_required,
+    permission_required,
+)
 from django.db.models import Q
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import redirect, render
 from django.utils import timezone
-from .forms import IncidentForm
+
+from accounts.scoping import (
+    get_visible_object_or_404,
+    limit_resident_choices,
+    scope_for_model,
+)
+from carecore.pagination import paginate
+
+from .forms import IncidentForm, IncidentInvestigationForm
 from .models import Incident
-from .models import Incident
+
 
 @login_required
 @permission_required(
@@ -16,14 +25,17 @@ from .models import Incident
 )
 def incident_list(request):
 
-    incidents = (
-        Incident.objects
-        .select_related(
-            "resident",
-            "reported_by",
-            "reported_by__user",
-        )
-        .order_by("-incident_date")
+    incidents = scope_for_model(
+        (
+            Incident.objects
+            .select_related(
+                "resident",
+                "reported_by",
+                "reported_by__user",
+            )
+            .order_by("-incident_date")
+        ),
+        request.user,
     )
 
     query = request.GET.get("q", "").strip()
@@ -65,11 +77,15 @@ def incident_list(request):
             category=category
         )
 
+    page, filter_query = paginate(request, incidents)
+
     return render(
         request,
         "incident/incident_list.html",
         {
-            "incidents": incidents,
+            "incidents": page,
+            "page": page,
+            "filter_query": filter_query,
             "query": query,
             "status": status,
             "severity": severity,
@@ -97,6 +113,7 @@ def incident_create(request):
     if request.method == "POST":
 
         form = IncidentForm(request.POST)
+        limit_resident_choices(form, request.user)
 
         if form.is_valid():
 
@@ -127,6 +144,7 @@ def incident_create(request):
         form = IncidentForm(
             initial=initial
         )
+        limit_resident_choices(form, request.user)
 
     return render(
         request,
@@ -145,7 +163,8 @@ def incident_create(request):
 )
 def incident_detail(request, pk):
 
-    incident = get_object_or_404(
+    incident = get_visible_object_or_404(
+        request.user,
         Incident.objects.select_related(
             "resident",
             "reported_by",
@@ -162,7 +181,6 @@ def incident_detail(request, pk):
         },
     )
 
-from .forms import IncidentForm, IncidentInvestigationForm
 @login_required
 @permission_required(
     "incidents.change_incident",
@@ -170,7 +188,8 @@ from .forms import IncidentForm, IncidentInvestigationForm
 )
 def incident_investigate(request, pk):
 
-    incident = get_object_or_404(
+    incident = get_visible_object_or_404(
+        request.user,
         Incident,
         pk=pk,
     )
@@ -181,6 +200,7 @@ def incident_investigate(request, pk):
             request.POST,
             instance=incident,
         )
+        limit_resident_choices(form, request.user)
 
         if form.is_valid():
 
@@ -211,6 +231,7 @@ def incident_investigate(request, pk):
         form = IncidentInvestigationForm(
             instance=incident,
         )
+        limit_resident_choices(form, request.user)
 
     return render(
         request,
@@ -228,7 +249,8 @@ def incident_investigate(request, pk):
 )
 def incident_edit(request, pk):
 
-    incident = get_object_or_404(
+    incident = get_visible_object_or_404(
+        request.user,
         Incident,
         pk=pk,
     )
@@ -239,6 +261,7 @@ def incident_edit(request, pk):
             request.POST,
             instance=incident,
         )
+        limit_resident_choices(form, request.user)
 
         if form.is_valid():
 
@@ -270,6 +293,7 @@ def incident_edit(request, pk):
         form = IncidentForm(
             instance=incident,
         )
+        limit_resident_choices(form, request.user)
 
     return render(
         request,
@@ -289,7 +313,8 @@ def incident_edit(request, pk):
 )
 def incident_resolve(request, pk):
 
-    incident = get_object_or_404(
+    incident = get_visible_object_or_404(
+        request.user,
         Incident,
         pk=pk,
     )
@@ -323,7 +348,8 @@ def incident_resolve(request, pk):
 )
 def incident_delete(request, pk):
 
-    incident = get_object_or_404(
+    incident = get_visible_object_or_404(
+        request.user,
         Incident,
         pk=pk,
     )
@@ -347,4 +373,3 @@ def incident_delete(request, pk):
             "incident": incident,
         },
     )
-    

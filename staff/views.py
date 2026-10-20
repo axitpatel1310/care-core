@@ -1,12 +1,26 @@
+from datetime import date
+
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth.decorators import permission_required
+from django.contrib.auth.decorators import (
+    login_required,
+    permission_required,
+)
 from django.db.models import Q
-from django.shortcuts import get_object_or_404, redirect, render
-from .models import StaffMember, ResidentStaffAssignment
-from .forms import StaffMemberForm, ResidentStaffAssignmentForm
-from .forms import StaffMemberForm
-from .models import StaffMember
+from django.shortcuts import redirect, render
+
+from accounts.scoping import (
+    get_visible_object_or_404,
+    limit_resident_choices,
+    scope_for_model,
+)
+from appointments.models import Appointment
+from care.models import CareTask
+from carecore.pagination import paginate
+from medications.models import MedicationAdministration
+from incidents.models import Incident
+
+from .forms import ResidentStaffAssignmentForm, StaffMemberForm
+from .models import ResidentStaffAssignment, StaffMember
 
 
 @login_required
@@ -16,11 +30,14 @@ from .models import StaffMember
 )
 def staff_list(request):
 
-    staff = StaffMember.objects.select_related(
-        "user",
-        "facility",
-        "ward",
-    ).all()
+    staff = scope_for_model(
+        StaffMember.objects.select_related(
+            "user",
+            "facility",
+            "ward",
+        ).all(),
+        request.user,
+    )
 
     query = request.GET.get("q", "").strip()
 
@@ -44,11 +61,15 @@ def staff_list(request):
         "user__first_name",
     )
 
+    page, filter_query = paginate(request, staff)
+
     return render(
         request,
         "staff/list.html",
         {
-            "staff": staff,
+            "staff": page,
+            "page": page,
+            "filter_query": filter_query,
             "query": query,
             "status": status,
         },
@@ -65,6 +86,7 @@ def staff_create(request):
     if request.method == "POST":
 
         form = StaffMemberForm(request.POST)
+        limit_resident_choices(form, request.user)
 
         if form.is_valid():
 
@@ -83,6 +105,7 @@ def staff_create(request):
     else:
 
         form = StaffMemberForm()
+        limit_resident_choices(form, request.user)
 
     return render(
         request,
@@ -102,7 +125,8 @@ def staff_create(request):
 )
 def staff_detail(request, pk):
 
-    staff_member = get_object_or_404(
+    staff_member = get_visible_object_or_404(
+        request.user,
         StaffMember.objects.select_related(
             "user",
             "facility",
@@ -127,7 +151,8 @@ def staff_detail(request, pk):
 )
 def staff_edit(request, pk):
 
-    staff_member = get_object_or_404(
+    staff_member = get_visible_object_or_404(
+        request.user,
         StaffMember,
         pk=pk,
     )
@@ -138,6 +163,7 @@ def staff_edit(request, pk):
             request.POST,
             instance=staff_member,
         )
+        limit_resident_choices(form, request.user)
 
         if form.is_valid():
 
@@ -158,6 +184,7 @@ def staff_edit(request, pk):
         form = StaffMemberForm(
             instance=staff_member,
         )
+        limit_resident_choices(form, request.user)
 
     return render(
         request,
@@ -178,7 +205,8 @@ def staff_edit(request, pk):
 )
 def staff_delete(request, pk):
 
-    staff_member = get_object_or_404(
+    staff_member = get_visible_object_or_404(
+        request.user,
         StaffMember,
         pk=pk,
     )
@@ -209,17 +237,20 @@ def staff_delete(request, pk):
 )
 def assignment_list(request):
 
-    assignments = (
-        ResidentStaffAssignment.objects
-        .select_related(
-            "staff",
-            "staff__user",
-            "resident",
-        )
-        .order_by(
-            "-is_active",
-            "resident__last_name",
-        )
+    assignments = scope_for_model(
+        (
+            ResidentStaffAssignment.objects
+            .select_related(
+                "staff",
+                "staff__user",
+                "resident",
+            )
+            .order_by(
+                "-is_active",
+                "resident__last_name",
+            )
+        ),
+        request.user,
     )
 
     query = request.GET.get("q", "").strip()
@@ -244,11 +275,15 @@ def assignment_list(request):
             )
         )
 
+    page, filter_query = paginate(request, assignments)
+
     return render(
         request,
         "staff/assignment_list.html",
         {
-            "assignments": assignments,
+            "assignments": page,
+            "page": page,
+            "filter_query": filter_query,
             "query": query,
         },
     )
@@ -275,6 +310,7 @@ def assignment_create(request):
         form = ResidentStaffAssignmentForm(
             request.POST
         )
+        limit_resident_choices(form, request.user)
 
         if form.is_valid():
 
@@ -295,6 +331,7 @@ def assignment_create(request):
         form = ResidentStaffAssignmentForm(
             initial=initial
         )
+        limit_resident_choices(form, request.user)
 
     return render(
         request,
@@ -313,7 +350,8 @@ def assignment_create(request):
 )
 def assignment_detail(request, pk):
 
-    assignment = get_object_or_404(
+    assignment = get_visible_object_or_404(
+        request.user,
         ResidentStaffAssignment.objects.select_related(
             "staff",
             "staff__user",
@@ -336,7 +374,8 @@ def assignment_detail(request, pk):
 )
 def assignment_edit(request, pk):
 
-    assignment = get_object_or_404(
+    assignment = get_visible_object_or_404(
+        request.user,
         ResidentStaffAssignment,
         pk=pk,
     )
@@ -347,6 +386,7 @@ def assignment_edit(request, pk):
             request.POST,
             instance=assignment,
         )
+        limit_resident_choices(form, request.user)
 
         if form.is_valid():
 
@@ -367,6 +407,7 @@ def assignment_edit(request, pk):
         form = ResidentStaffAssignmentForm(
             instance=assignment
         )
+        limit_resident_choices(form, request.user)
 
     return render(
         request,
@@ -386,7 +427,8 @@ def assignment_edit(request, pk):
 )
 def assignment_delete(request, pk):
 
-    assignment = get_object_or_404(
+    assignment = get_visible_object_or_404(
+        request.user,
         ResidentStaffAssignment,
         pk=pk,
     )
@@ -412,16 +454,6 @@ def assignment_delete(request, pk):
         },
     )
 
-from datetime import date
-
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404, render
-
-from .models import StaffMember
-from care.models import CareTask
-from medications.models import MedicationAdministration
-from appointments.models import Appointment
-from incidents.models import Incident
 
 @login_required
 def staff_workspace(request):
@@ -461,7 +493,7 @@ def staff_workspace(request):
     # -------------------------
 
     todays_appointments = (
-        Appointment.objects
+        scope_for_model(Appointment.objects.all(), request.user)
         .filter(
             appointment_date=today,
         )
@@ -475,7 +507,7 @@ def staff_workspace(request):
     # -------------------------
 
     open_incidents = (
-        Incident.objects
+        scope_for_model(Incident.objects.all(), request.user)
         .filter(
             status__in=["open", "investigating"],
         )

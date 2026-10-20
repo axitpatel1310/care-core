@@ -4,15 +4,18 @@ from django.contrib.auth.decorators import (
     permission_required,
 )
 from django.db.models import Q
-from django.shortcuts import (
-    get_object_or_404,
-    redirect,
-    render,
-)
+from django.shortcuts import redirect, render
+from django.utils import timezone
 
+from accounts.scoping import (
+    get_visible_object_or_404,
+    limit_resident_choices,
+    scope_for_model,
+)
+from carecore.pagination import paginate
 from residents.models import Resident
 
-from .forms import ObservationForm
+from .forms import ObservationAmendForm, ObservationForm
 from .models import Observation
 from .news2 import CLINICAL_RESPONSE, RISK_CHOICES
 from .services import escalate_if_required
@@ -36,10 +39,13 @@ BREAKDOWN_LABELS = {
 )
 def observation_list(request):
 
-    observations = Observation.objects.select_related(
-        "resident",
-        "recorded_by",
-        "recorded_by__user",
+    observations = scope_for_model(
+        Observation.objects.select_related(
+            "resident",
+            "recorded_by",
+            "recorded_by__user",
+        ),
+        request.user,
     )
 
     risk = request.GET.get("risk", "")
@@ -54,11 +60,15 @@ def observation_list(request):
             | Q(resident__last_name__icontains=query)
         )
 
+    page, filter_query = paginate(request, observations)
+
     return render(
         request,
         "observations/observation_list.html",
         {
-            "observations": observations[:200],
+            "observations": page,
+            "page": page,
+            "filter_query": filter_query,
             "risk": risk,
             "query": query,
             "risk_choices": RISK_CHOICES,
@@ -83,6 +93,7 @@ def observation_create(request):
     if request.method == "POST":
 
         form = ObservationForm(request.POST)
+        limit_resident_choices(form, request.user)
 
         if form.is_valid():
 
@@ -119,6 +130,7 @@ def observation_create(request):
     else:
 
         form = ObservationForm(initial=initial)
+        limit_resident_choices(form, request.user)
 
     return render(
         request,
@@ -138,7 +150,8 @@ def observation_create(request):
 )
 def observation_detail(request, pk):
 
-    observation = get_object_or_404(
+    observation = get_visible_object_or_404(
+        request.user,
         Observation.objects.select_related(
             "resident",
             "recorded_by__user",
@@ -167,12 +180,66 @@ def observation_detail(request, pk):
 
 @login_required
 @permission_required(
+    "observations.change_observation",
+    raise_exception=True,
+)
+def observation_amend(request, pk):
+
+    observation = get_visible_object_or_404(
+        request.user,
+        Observation.objects.select_related("resident"),
+        pk=pk,
+    )
+
+    previous_score = observation.news2_score
+
+    if request.method == "POST":
+
+        form = ObservationAmendForm(request.POST, instance=observation)
+
+        if form.is_valid():
+
+            observation = form.save(commit=False)
+            observation.amended_at = timezone.now()
+            observation.amended_by = request.user
+            observation.amendment_reason = form.cleaned_data["amendment_reason"]
+            observation.save()
+
+            task = escalate_if_required(observation)
+
+            messages.success(
+                request,
+                f"Observation amended. NEWS2 {previous_score} → {observation.news2_score}."
+                + (" An urgent care task has been created." if task else ""),
+            )
+
+            return redirect("observation_detail", pk=observation.pk)
+
+    else:
+
+        form = ObservationAmendForm(instance=observation)
+
+    return render(
+        request,
+        "observations/observation_form.html",
+        {
+            "form": form,
+            "observation": observation,
+            "title": f"Amend Observations – {observation.resident}",
+            "button_text": "Save Amendment",
+        },
+    )
+
+
+@login_required
+@permission_required(
     "observations.delete_observation",
     raise_exception=True,
 )
 def observation_delete(request, pk):
 
-    observation = get_object_or_404(
+    observation = get_visible_object_or_404(
+        request.user,
         Observation,
         pk=pk,
     )
@@ -209,7 +276,8 @@ def observation_delete(request, pk):
 )
 def resident_observations(request, resident_pk):
 
-    resident = get_object_or_404(
+    resident = get_visible_object_or_404(
+        request.user,
         Resident,
         pk=resident_pk,
     )

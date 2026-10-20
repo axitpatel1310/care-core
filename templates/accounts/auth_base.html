@@ -1,0 +1,33 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CareCore{% endblock %} | CareCore</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body class="auth-page">
+
+<div class="auth-container">
+
+    <div class="auth-brand">
+        <div class="brand-icon">C</div>
+        <div>
+            <h1>CareCore</h1>
+            <span>Facility Management</span>
+        </div>
+    </div>
+
+    <div class="auth-card">
+        {% block card %}{% endblock %}
+    </div>
+
+    <div class="auth-security">
+        Secure facility management system
+    </div>
+
+</div>
+
+</body>
+</html>

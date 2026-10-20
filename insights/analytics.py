@@ -20,20 +20,26 @@ from observations.news2 import RISK_CHOICES
 from residents.models import Resident
 
 
+def unscoped(queryset):
+    return queryset
+
+
 def period_bounds(days):
     end = timezone.now()
     return end - timedelta(days=days), end
 
 
-def occupied_bed_days(start, end):
+def occupied_bed_days(start, end, scope=None):
     """
     Approximate occupied bed days in the window: each currently active
     resident contributes the days between max(admission, start) and end.
     """
 
+    scope = scope or unscoped
+
     total = 0
 
-    for admission_date in Resident.objects.filter(status="active").values_list(
+    for admission_date in scope(Resident.objects.all()).filter(status="active").values_list(
         "admission_date", flat=True
     ):
         first_day = max(admission_date, timezone.localdate(start))
@@ -42,20 +48,22 @@ def occupied_bed_days(start, end):
     return total
 
 
-def kpis(start, end):
+def kpis(start, end, scope=None):
 
-    incidents = Incident.objects.filter(incident_date__range=(start, end))
+    scope = scope or unscoped
+
+    incidents = scope(Incident.objects.all()).filter(incident_date__range=(start, end))
 
     falls = incidents.filter(category="fall").count()
-    bed_days = occupied_bed_days(start, end)
+    bed_days = occupied_bed_days(start, end, scope)
 
-    administrations = MedicationAdministration.objects.filter(
+    administrations = scope(MedicationAdministration.objects.all()).filter(
         administered_at__range=(start, end)
     )
     total_doses = administrations.count()
     given = administrations.filter(status="administered").count()
 
-    due_tasks = CareTask.objects.filter(
+    due_tasks = scope(CareTask.objects.all()).filter(
         due_date__range=(timezone.localdate(start), timezone.localdate(end)),
     ).exclude(status="cancelled")
     completed = due_tasks.filter(status="completed", completed_at__isnull=False)
@@ -76,7 +84,7 @@ def kpis(start, end):
         )
     )["average"]
 
-    observations = Observation.objects.filter(recorded_at__range=(start, end))
+    observations = scope(Observation.objects.all()).filter(recorded_at__range=(start, end))
 
     return {
         "incident_count": incidents.count(),
@@ -95,10 +103,12 @@ def kpis(start, end):
     }
 
 
-def incidents_by_month(start, end):
+def incidents_by_month(start, end, scope=None):
+
+    scope = scope or unscoped
 
     rows = (
-        Incident.objects
+        scope(Incident.objects.all())
         .filter(incident_date__range=(start, end))
         .annotate(month=TruncMonth("incident_date"))
         .values("month", "severity")
@@ -127,12 +137,14 @@ def incidents_by_month(start, end):
     }
 
 
-def incidents_by_category(start, end):
+def incidents_by_category(start, end, scope=None):
+
+    scope = scope or unscoped
 
     labels = dict(Incident.CATEGORY_CHOICES)
 
     rows = (
-        Incident.objects
+        scope(Incident.objects.all())
         .filter(incident_date__range=(start, end))
         .values("category")
         .annotate(total=Count("id"))
@@ -145,10 +157,12 @@ def incidents_by_category(start, end):
     }
 
 
-def medication_adherence_by_week(start, end):
+def medication_adherence_by_week(start, end, scope=None):
+
+    scope = scope or unscoped
 
     rows = (
-        MedicationAdministration.objects
+        scope(MedicationAdministration.objects.all())
         .filter(administered_at__range=(start, end))
         .annotate(week=TruncWeek("administered_at"))
         .values("week", "status")
@@ -170,12 +184,14 @@ def medication_adherence_by_week(start, end):
     }
 
 
-def latest_news2_distribution():
+def latest_news2_distribution(scope=None):
+
+    scope = scope or unscoped
 
     latest = {}
 
     for resident_id, risk_level in (
-        Observation.objects
+        scope(Observation.objects.all())
         .filter(resident__status="active")
         .order_by("resident_id", "-recorded_at")
         .values_list("resident_id", "risk_level")
@@ -190,12 +206,14 @@ def latest_news2_distribution():
     }
 
 
-def residents_by_care_level():
+def residents_by_care_level(scope=None):
+
+    scope = scope or unscoped
 
     labels = dict(Resident.CARE_LEVEL_CHOICES)
 
     rows = (
-        Resident.objects
+        scope(Resident.objects.all())
         .filter(status="active")
         .values("care_level")
         .annotate(total=Count("id"))

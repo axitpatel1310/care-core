@@ -1,11 +1,33 @@
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth.decorators import permission_required
+from django.contrib.auth.decorators import (
+    login_required,
+    permission_required,
+)
 from django.db.models import Q
-from django.shortcuts import get_object_or_404, redirect, render
-from residents.models import Resident,ResidentContact
-from .forms import CarePlanForm,AssessmentForm,CognitiveBehaviouralSupportForm
-from .models import CarePlan, Assessment
+from django.shortcuts import redirect, render
+from django.utils import timezone
+
+from accounts.scoping import (
+    get_visible_object_or_404,
+    limit_resident_choices,
+    scope_for_model,
+)
+from carecore.pagination import paginate
+from residents.models import Resident
+
+from .forms import (
+    AssessmentForm,
+    CarePlanForm,
+    CareTaskForm,
+    CognitiveBehaviouralSupportForm,
+)
+from .models import (
+    Assessment,
+    CarePlan,
+    CareTask,
+    CognitiveBehaviouralSupport,
+)
+
 
 @login_required
 @permission_required(
@@ -14,11 +36,14 @@ from .models import CarePlan, Assessment
 )
 def care_plan_list(request):
 
-    care_plans = CarePlan.objects.select_related(
-        "resident",
-        "responsible_staff",
-        "created_by",
-    ).all()
+    care_plans = scope_for_model(
+        CarePlan.objects.select_related(
+            "resident",
+            "responsible_staff",
+            "created_by",
+        ).all(),
+        request.user,
+    )
 
     query = request.GET.get("q", "").strip()
     status = request.GET.get("status", "").strip()
@@ -40,11 +65,15 @@ def care_plan_list(request):
         "-created_at"
     )
 
+    page, filter_query = paginate(request, care_plans)
+
     return render(
         request,
         "care/care_plan_list.html",
         {
-            "care_plans": care_plans,
+            "care_plans": page,
+            "page": page,
+            "filter_query": filter_query,
             "query": query,
             "status": status,
         },
@@ -63,7 +92,8 @@ def care_plan_create(request):
     initial = {}
 
     if resident_id:
-        resident = get_object_or_404(
+        resident = get_visible_object_or_404(
+            request.user,
             Resident,
             pk=resident_id,
         )
@@ -73,6 +103,7 @@ def care_plan_create(request):
     if request.method == "POST":
 
         form = CarePlanForm(request.POST)
+        limit_resident_choices(form, request.user)
 
         if form.is_valid():
 
@@ -99,6 +130,7 @@ def care_plan_create(request):
         form = CarePlanForm(
             initial=initial
         )
+        limit_resident_choices(form, request.user)
 
     return render(
         request,
@@ -117,7 +149,8 @@ def care_plan_create(request):
 )
 def care_plan_detail(request, pk):
 
-    care_plan = get_object_or_404(
+    care_plan = get_visible_object_or_404(
+        request.user,
         CarePlan.objects.select_related(
             "resident",
             "responsible_staff",
@@ -142,7 +175,8 @@ def care_plan_detail(request, pk):
 )
 def care_plan_edit(request, pk):
 
-    care_plan = get_object_or_404(
+    care_plan = get_visible_object_or_404(
+        request.user,
         CarePlan,
         pk=pk,
     )
@@ -153,6 +187,7 @@ def care_plan_edit(request, pk):
             request.POST,
             instance=care_plan,
         )
+        limit_resident_choices(form, request.user)
 
         if form.is_valid():
 
@@ -173,6 +208,7 @@ def care_plan_edit(request, pk):
         form = CarePlanForm(
             instance=care_plan,
         )
+        limit_resident_choices(form, request.user)
 
     return render(
         request,
@@ -193,7 +229,8 @@ def care_plan_edit(request, pk):
 )
 def care_plan_delete(request, pk):
 
-    care_plan = get_object_or_404(
+    care_plan = get_visible_object_or_404(
+        request.user,
         CarePlan,
         pk=pk,
     )
@@ -226,10 +263,13 @@ def care_plan_delete(request, pk):
 )
 def assessment_list(request):
 
-    assessments = Assessment.objects.select_related(
-        "resident",
-        "performed_by",
-    ).all()
+    assessments = scope_for_model(
+        Assessment.objects.select_related(
+            "resident",
+            "performed_by",
+        ).all(),
+        request.user,
+    )
 
     query = request.GET.get("q", "").strip()
 
@@ -249,11 +289,15 @@ def assessment_list(request):
         "-assessment_date"
     )
 
+    page, filter_query = paginate(request, assessments)
+
     return render(
         request,
         "care/assessment_list.html",
         {
-            "assessments": assessments,
+            "assessments": page,
+            "page": page,
+            "filter_query": filter_query,
             "query": query,
         },
     )
@@ -272,7 +316,8 @@ def assessment_create(request):
 
     if resident_id:
 
-        resident = get_object_or_404(
+        resident = get_visible_object_or_404(
+            request.user,
             Resident,
             pk=resident_id,
         )
@@ -282,6 +327,7 @@ def assessment_create(request):
     if request.method == "POST":
 
         form = AssessmentForm(request.POST)
+        limit_resident_choices(form, request.user)
 
         if form.is_valid():
 
@@ -302,6 +348,7 @@ def assessment_create(request):
         form = AssessmentForm(
             initial=initial
         )
+        limit_resident_choices(form, request.user)
 
     return render(
         request,
@@ -321,7 +368,8 @@ def assessment_create(request):
 )
 def assessment_detail(request, pk):
 
-    assessment = get_object_or_404(
+    assessment = get_visible_object_or_404(
+        request.user,
         Assessment.objects.select_related(
             "resident",
             "performed_by",
@@ -345,7 +393,8 @@ def assessment_detail(request, pk):
 )
 def assessment_edit(request, pk):
 
-    assessment = get_object_or_404(
+    assessment = get_visible_object_or_404(
+        request.user,
         Assessment,
         pk=pk,
     )
@@ -356,6 +405,7 @@ def assessment_edit(request, pk):
             request.POST,
             instance=assessment,
         )
+        limit_resident_choices(form, request.user)
 
         if form.is_valid():
 
@@ -376,6 +426,7 @@ def assessment_edit(request, pk):
         form = AssessmentForm(
             instance=assessment,
         )
+        limit_resident_choices(form, request.user)
 
     return render(
         request,
@@ -396,7 +447,8 @@ def assessment_edit(request, pk):
 )
 def assessment_delete(request, pk):
 
-    assessment = get_object_or_404(
+    assessment = get_visible_object_or_404(
+        request.user,
         Assessment,
         pk=pk,
     )
@@ -422,11 +474,6 @@ def assessment_delete(request, pk):
         },
     )
     
-from .models import (
-    CarePlan,
-    Assessment,
-    CognitiveBehaviouralSupport,
-)
 
 @login_required
 @permission_required(
@@ -435,9 +482,12 @@ from .models import (
 )
 def behavioural_support_list(request):
 
-    supports = CognitiveBehaviouralSupport.objects.select_related(
-        "resident",
-    ).all()
+    supports = scope_for_model(
+        CognitiveBehaviouralSupport.objects.select_related(
+            "resident",
+        ).all(),
+        request.user,
+    )
 
     query = request.GET.get("q", "").strip()
 
@@ -458,11 +508,15 @@ def behavioural_support_list(request):
         "resident__first_name",
     )
 
+    page, filter_query = paginate(request, supports)
+
     return render(
         request,
         "care/behavioural_support_list.html",
         {
-            "supports": supports,
+            "supports": page,
+            "page": page,
+            "filter_query": filter_query,
             "query": query,
         },
     )
@@ -481,7 +535,8 @@ def behavioural_support_create(request):
 
     if resident_id:
 
-        resident = get_object_or_404(
+        resident = get_visible_object_or_404(
+            request.user,
             Resident,
             pk=resident_id,
         )
@@ -493,6 +548,7 @@ def behavioural_support_create(request):
         form = CognitiveBehaviouralSupportForm(
             request.POST
         )
+        limit_resident_choices(form, request.user)
 
         if form.is_valid():
 
@@ -513,6 +569,7 @@ def behavioural_support_create(request):
         form = CognitiveBehaviouralSupportForm(
             initial=initial
         )
+        limit_resident_choices(form, request.user)
 
     return render(
         request,
@@ -532,7 +589,8 @@ def behavioural_support_create(request):
 )
 def behavioural_support_detail(request, pk):
 
-    support = get_object_or_404(
+    support = get_visible_object_or_404(
+        request.user,
         CognitiveBehaviouralSupport.objects.select_related(
             "resident",
         ),
@@ -555,7 +613,8 @@ def behavioural_support_detail(request, pk):
 )
 def behavioural_support_edit(request, pk):
 
-    support = get_object_or_404(
+    support = get_visible_object_or_404(
+        request.user,
         CognitiveBehaviouralSupport,
         pk=pk,
     )
@@ -566,6 +625,7 @@ def behavioural_support_edit(request, pk):
             request.POST,
             instance=support,
         )
+        limit_resident_choices(form, request.user)
 
         if form.is_valid():
 
@@ -586,6 +646,7 @@ def behavioural_support_edit(request, pk):
         form = CognitiveBehaviouralSupportForm(
             instance=support,
         )
+        limit_resident_choices(form, request.user)
 
     return render(
         request,
@@ -606,7 +667,8 @@ def behavioural_support_edit(request, pk):
 )
 def behavioural_support_delete(request, pk):
 
-    support = get_object_or_404(
+    support = get_visible_object_or_404(
+        request.user,
         CognitiveBehaviouralSupport,
         pk=pk,
     )
@@ -632,39 +694,7 @@ def behavioural_support_delete(request, pk):
         },
     )
     
-from django.db.models import Q
-from django.utils import timezone
 
-from .models import (
-    CarePlan,
-    Assessment,
-    CognitiveBehaviouralSupport,
-    CareTask,
-)
-
-from .forms import (
-    CarePlanForm,
-    AssessmentForm,
-    CognitiveBehaviouralSupportForm,
-    CareTaskForm,
-)
-
-from django.contrib import messages
-from django.contrib.auth.decorators import (
-    login_required,
-    permission_required,
-)
-from django.shortcuts import (
-    get_object_or_404,
-    redirect,
-    render,
-)
-from django.utils import timezone
-
-from staff.models import StaffMember
-
-from .forms import CareTaskForm
-from .models import CareTask
 
 @login_required
 @permission_required(
@@ -673,17 +703,20 @@ from .models import CareTask
 )
 def task_list(request):
 
-    tasks = (
-        CareTask.objects
-        .select_related(
-            "resident",
-            "assigned_to",
-            "completed_by",
-        )
-        .order_by(
-            "due_date",
-            "due_time",
-        )
+    tasks = scope_for_model(
+        (
+            CareTask.objects
+            .select_related(
+                "resident",
+                "assigned_to",
+                "completed_by",
+            )
+            .order_by(
+                "due_date",
+                "due_time",
+            )
+        ),
+        request.user,
     )
 
     status = request.GET.get("status")
@@ -699,11 +732,15 @@ def task_list(request):
     if task_type:
         tasks = tasks.filter(task_type=task_type)
 
+    page, filter_query = paginate(request, tasks)
+
     return render(
         request,
         "tasks/task_list.html",
         {
-            "tasks": tasks,
+            "tasks": page,
+            "page": page,
+            "filter_query": filter_query,
             "status": status,
             "priority": priority,
             "task_type": task_type,
@@ -720,7 +757,8 @@ def task_list(request):
 )
 def task_detail(request, pk):
 
-    task = get_object_or_404(
+    task = get_visible_object_or_404(
+        request.user,
         CareTask.objects.select_related(
             "resident",
             "assigned_to",
@@ -754,6 +792,7 @@ def task_create(request):
     if request.method == "POST":
 
         form = CareTaskForm(request.POST)
+        limit_resident_choices(form, request.user)
 
         if form.is_valid():
 
@@ -774,6 +813,7 @@ def task_create(request):
         form = CareTaskForm(
             initial=initial
         )
+        limit_resident_choices(form, request.user)
 
     return render(
         request,
@@ -792,7 +832,8 @@ def task_create(request):
 )
 def task_edit(request, pk):
 
-    task = get_object_or_404(
+    task = get_visible_object_or_404(
+        request.user,
         CareTask,
         pk=pk,
     )
@@ -803,6 +844,7 @@ def task_edit(request, pk):
             request.POST,
             instance=task,
         )
+        limit_resident_choices(form, request.user)
 
         if form.is_valid():
 
@@ -823,6 +865,7 @@ def task_edit(request, pk):
         form = CareTaskForm(
             instance=task
         )
+        limit_resident_choices(form, request.user)
 
     return render(
         request,
@@ -841,7 +884,8 @@ def task_edit(request, pk):
 )
 def task_complete(request, pk):
 
-    task = get_object_or_404(
+    task = get_visible_object_or_404(
+        request.user,
         CareTask,
         pk=pk,
     )
@@ -895,7 +939,8 @@ def task_complete(request, pk):
 )
 def task_start(request, pk):
 
-    task = get_object_or_404(
+    task = get_visible_object_or_404(
+        request.user,
         CareTask,
         pk=pk,
     )
@@ -922,7 +967,8 @@ def task_start(request, pk):
 )
 def task_cancel(request, pk):
 
-    task = get_object_or_404(
+    task = get_visible_object_or_404(
+        request.user,
         CareTask,
         pk=pk,
     )
@@ -949,7 +995,8 @@ def task_cancel(request, pk):
 )
 def task_delete(request, pk):
 
-    task = get_object_or_404(
+    task = get_visible_object_or_404(
+        request.user,
         CareTask,
         pk=pk,
     )

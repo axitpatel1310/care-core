@@ -1,4 +1,3 @@
-```html
 {% extends "base.html" %}
 
 {% block title %}
@@ -30,6 +29,16 @@ Administer Medication | CareCore
             Record the administration of {{ medication.name }}
             for {{ medication.resident }}.
         </p>
+
+        {% if scheduled_for %}
+        <p>
+            Scheduled dose: <strong>{{ scheduled_for|date:"D d M Y, H:i" }}</strong>
+        </p>
+        {% elif not administration %}
+        <p class="text-muted">
+            Unscheduled / PRN dose (not linked to a scheduled time).
+        </p>
+        {% endif %}
 
     </div>
 
@@ -145,6 +154,14 @@ Administer Medication | CareCore
         {% endif %}
 
 
+        {% if scheduled_for %}
+        <input type="hidden" name="scheduled_for" value="{{ scheduled_for|date:'c' }}">
+        {% endif %}
+
+        {% if return_to %}
+        <input type="hidden" name="return_to" value="{{ return_to }}">
+        {% endif %}
+
         {% for field in form %}
 
         <div class="form-group">
@@ -200,4 +217,3 @@ Administer Medication | CareCore
 </div>
 
 {% endblock %}
-```

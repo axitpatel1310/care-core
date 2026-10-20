@@ -139,6 +139,26 @@ class Observation(models.Model):
         auto_now_add=True,
     )
 
+    amended_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        editable=False,
+    )
+
+    amended_by = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        editable=False,
+        related_name="amended_observations",
+    )
+
+    amendment_reason = models.TextField(
+        blank=True,
+        editable=False,
+    )
+
     class Meta:
         ordering = ["-recorded_at"]
         indexes = [
