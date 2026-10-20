@@ -73,12 +73,37 @@ CareCore is a centralized management system for residential care facilities, bri
 * Room capacity and occupancy
 * Facility management structure
 
-### Compliance
+### Clinical Observations & NEWS2 Early Warning
 
-* Compliance dashboard
-* Permission-controlled access
-* Audit-oriented data structure
-* Role-based access control
+* Vital signs: respiration rate, SpO₂ (scale 1 and 2), supplemental oxygen, blood pressure, pulse, ACVPU consciousness, temperature, blood glucose and pain score
+* Automatic **NEWS2** (National Early Warning Score 2, Royal College of Physicians, 2017) calculation with per-parameter breakdown
+* Clinical risk band (low, low–medium, medium, high) and the matching clinical response and monitoring frequency
+* Live score preview while the form is being filled in
+* Automatic escalation: medium/high scores create an urgent care task assigned to the resident's nurse or primary carer
+* Per-resident observation chart with NEWS2 and vital-sign trend graphs
+
+### Clinical Safety Insights
+
+* **Alert Centre**: a rule-based engine that raises critical / warning / information alerts for deteriorating residents, overdue repeat observations, unresolved serious incidents, overdue or urgent care tasks, missed/refused doses, medication courses ending, overdue care plan and assessment reviews, unconfirmed appointments and governance deadlines. Alerts are filtered by the user's permissions and shown as a badge on the notification bell
+* **Resident Risk Register**: an explainable 0–100 composite risk score per resident (see *Risk scoring* below), with every contributing factor shown
+* **Shift Handover Report**: printable per-resident summary of the last 8/12/24 hours, filterable by ward
+* **Analytics & Reports**: quality indicators (falls per 1,000 occupied bed days, medication adherence, on-time task completion, mean incident resolution time, NEWS2 escalations) with charts and CSV exports (exports are audited and protected against spreadsheet formula injection)
+
+### Compliance & Governance
+
+* Compliance dashboard with a 5×5 risk heat map
+* **Risk register**: severity rated automatically from likelihood × impact (low 1–4, medium 5–9, high 10–14, extreme 15–25)
+* **Policies & documents** with versioning, file upload and review-date tracking
+* **Audits** with individual controls and a computed compliance score (passed = 1, partial = ½, failed = 0)
+* **Corrective actions** raised directly from failed audit controls or incidents, with completion/verification timestamps and overdue tracking
+
+### Security & Audit Trail
+
+* Role-based access control: each role is mapped to a Django permission group automatically (groups are provisioned after `migrate` and kept in sync when a user's role changes)
+* Sign-in with email address (case-insensitive)
+* **Automatic audit trail** of every create/update/delete on clinical and governance records, with the acting user, IP address and a field-level before/after diff; sign-ins, sign-outs, failed sign-ins and data exports are also logged
+* Filterable, paginated audit log for administrators
+* Environment-based configuration with secure cookie/HSTS settings when `CARECORE_DEBUG` is off
 
 ---
 
@@ -127,9 +152,38 @@ CareCore
 ├── facility
 │   └── Facilities, wards and rooms
 │
-└── compliance
-    └── Compliance management
+├── compliance
+│   └── Risk register, policies, audits, corrective actions
+│
+├── observations
+│   └── Vital signs, NEWS2 scoring (news2.py) and escalation (services.py)
+│
+└── insights
+    └── Alert engine (alerts.py), risk scoring (risk.py),
+        quality indicators (analytics.py), handover and CSV exports
 ```
+
+### Design notes
+
+* **Pure scoring logic.** `observations/news2.py` and the risk-band functions contain no database access, so the clinical rules are unit tested against the published NEWS2 boundary values.
+* **Rule registry.** Each alert rule in `insights/alerts.py` is a small generator registered with the permission required to see it; adding a new alert is one decorated function.
+* **Explainability.** The risk score is the sum of named factors (each capped), and the UI always shows the factors, not just the number.
+* **Audit by signals.** `accounts/audit_trail.py` connects `pre_save`/`post_save`/`post_delete` handlers for every tracked model; `accounts.middleware.CurrentRequestMiddleware` exposes the acting user and IP to those handlers.
+
+### Risk scoring
+
+| Factor | Points |
+| --- | --- |
+| Latest NEWS2 in the last 72 h | high 30 · medium 20 · low–medium 12 · low but > 0: 4 |
+| Falls in the last 90 days | 10 each, max 25 |
+| Other high/critical incidents in the last 30 days | 10 each, max 15 |
+| Doses missed/refused/withheld in the last 14 days | up to 20 (proportional) |
+| Overdue care tasks | 3 each, max 10 |
+| Care level | complex 10 · high 5 |
+| No active care plan, or plan review overdue | 5 |
+| Overdue assessment reviews | 5 each, max 10 |
+
+Bands: **low** 0–29, **moderate** 30–59, **high** 60–100.
 
 ---
 
@@ -142,7 +196,7 @@ CareCore
 * **CSS**
 * **JavaScript**
 * **Django Templates**
-* **Chart.js**
+* **Chart.js 4.4.1** (vendored in `static/vendor`, so charts work offline)
 
 ---
 
@@ -164,9 +218,12 @@ care-core/
 ├── templates/
 ├── static/
 │
+├── observations/
+├── insights/
+│
 ├── manage.py
 ├── requirements.txt
-└── README.md
+└── Readme.md
 ```
 
 ---
@@ -202,19 +259,33 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 4. Run migrations
+### 4. Configure (optional)
+
+Development works with no configuration. For any shared or production deployment set:
+
+| Variable | Purpose |
+| --- | --- |
+| `CARECORE_DEBUG` | `false` in production (enables secure cookies, HSTS, SSL redirect) |
+| `CARECORE_SECRET_KEY` | Required when debug is off |
+| `CARECORE_ALLOWED_HOSTS` | Comma-separated host names |
+| `CARECORE_CSRF_TRUSTED_ORIGINS` | Comma-separated origins, e.g. `https://care.example.org` |
+| `CARECORE_TIME_ZONE` | e.g. `Europe/London` (default `UTC`) |
+
+### 5. Run migrations
 
 ```bash
 python manage.py migrate
 ```
 
-### 5. Create a superuser
+Role permission groups are created automatically. To re-apply them after changing `accounts/roles.py`, run `python manage.py setup_roles`.
+
+### 6. Create a superuser
 
 ```bash
 python manage.py createsuperuser
 ```
 
-### 6. Run the development server
+### 7. Run the development server
 
 ```bash
 python manage.py runserver
@@ -250,9 +321,13 @@ The command creates sample:
 * Assessments
 * Care tasks
 * Medications
-* Medication administrations
-* Incidents
+* Medication administrations (12 weeks of history)
+* Incidents (a year of history for the analytics charts)
 * Appointments
+* Observations, including a deteriorating resident who triggers NEWS2 escalation
+* Compliance documents, risks, an audit with controls and corrective actions
+
+Demo accounts (password `CareCoreDemo123!`): `admin@carecore.demo`, `manager@carecore.demo`, `rn@carecore.demo`, `careworker@carecore.demo`.
 
 Demo credentials are intended **only for local development** and must not be used in production.
 
@@ -288,6 +363,16 @@ appointments.change_appointment
 ```
 
 Views are protected using authentication and permission decorators where appropriate.
+
+---
+
+## Testing
+
+```bash
+python manage.py test
+```
+
+The suite covers NEWS2 boundary values for every parameter, risk bands and escalation, the composite risk score, alert rules and their permission filtering, quality-indicator calculations, CSV export safety, the risk matrix, audit compliance scoring, corrective-action lifecycle, role/permission group sync, email login, the audit trail, and a smoke test that renders every page as every role against the demo data.
 
 ---
 
@@ -329,10 +414,12 @@ CareCore's core application functionality is implemented, including:
 * Medication administration
 * Incident management
 * Appointment management
-* Compliance dashboard
+* Compliance & governance registers
+* Clinical observations with NEWS2 early warning and escalation
+* Alert centre, resident risk register, shift handover and analytics
+* Automatic audit trail
 * Demo data generation
-
-The current phase is **end-to-end testing, security validation, and production hardening**.
+* Automated test suite
 
 ---
 
@@ -342,8 +429,7 @@ CareCore handles sensitive care-related information and should be treated as a s
 
 Before production deployment:
 
-* Disable development settings
-* Use environment variables for secrets
+* Set `CARECORE_DEBUG=false` and a strong `CARECORE_SECRET_KEY`
 * Configure a production database
 * Configure HTTPS
 * Review all permissions
