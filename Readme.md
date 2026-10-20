@@ -28,9 +28,11 @@ CareCore is a centralized management system for residential care facilities, bri
 
 ### Medication Management
 
-* Medication records
-* Dosage and frequency tracking
-* Medication administration records
+* Medication records with **scheduled dose times** (suggested automatically from the frequency, e.g. "Twice daily" → 08:00, 20:00) and PRN (as-required) medicines
+* **Medication round** page: every dose due today grouped by round, showing given / refused / missed / withheld / due now / overdue, with one-click recording against the scheduled dose
+* **7-day MAR chart** per resident (printable), including PRN doses given
+* "Dose overdue" alerts when a scheduled dose is more than an hour late with nothing recorded
+* A reason is required when a dose is refused, missed or withheld; a scheduled dose cannot be recorded twice
 * Administration history
 * Administration status tracking:
 
@@ -70,7 +72,7 @@ CareCore is a centralized management system for residential care facilities, bri
 * Facilities
 * Wards
 * Rooms
-* Room capacity and occupancy
+* Room capacity, with occupancy **calculated from residents** (residents in hospital or on leave keep their bed); a resident cannot be placed in a full room
 * Facility management structure
 
 ### Clinical Observations & NEWS2 Early Warning
@@ -79,6 +81,7 @@ CareCore is a centralized management system for residential care facilities, bri
 * Automatic **NEWS2** (National Early Warning Score 2, Royal College of Physicians, 2017) calculation with per-parameter breakdown
 * Clinical risk band (low, low–medium, medium, high) and the matching clinical response and monitoring frequency
 * Live score preview while the form is being filled in
+* Amendments require a reason; who amended and why is shown on the record, and the original values stay in the audit trail
 * Automatic escalation: medium/high scores create an urgent care task assigned to the resident's nurse or primary carer
 * Per-resident observation chart with NEWS2 and vital-sign trend graphs
 
@@ -101,6 +104,12 @@ CareCore is a centralized management system for residential care facilities, bri
 
 * Role-based access control: each role is mapped to a Django permission group automatically (groups are provisioned after `migrate` and kept in sync when a user's role changes)
 * Sign-in with email address (case-insensitive)
+* **Account approval:** self-registration only creates a request; an administrator approves it and assigns the role
+* **Sign-in throttling:** repeated failed attempts lock sign-in for 15 minutes
+* Password reset by email and password change
+* Safe post-login redirects (no open redirect), and sign-out only via POST
+* **Facility data segregation:** staff only see residents (and their records, alerts and reports) for the facility they work in or manage; administrators see everything
+* Uploaded policy documents are served only to users with permission, never from a public URL
 * **Automatic audit trail** of every create/update/delete on clinical and governance records, with the acting user, IP address and a field-level before/after diff; sign-ins, sign-outs, failed sign-ins and data exports are also logged
 * Filterable, paginated audit log for administrators
 * Environment-based configuration with secure cookie/HSTS settings when `CARECORE_DEBUG` is off
@@ -163,6 +172,8 @@ CareCore
         quality indicators (analytics.py), handover and CSV exports
 ```
 
+See [`docs/architecture.md`](docs/architecture.md) for the ER diagram, request flows, security model and known limitations.
+
 ### Design notes
 
 * **Pure scoring logic.** `observations/news2.py` and the risk-band functions contain no database access, so the clinical rules are unit tested against the published NEWS2 boundary values.
@@ -220,6 +231,8 @@ care-core/
 │
 ├── observations/
 ├── insights/
+├── docs/
+│   └── architecture.md
 │
 ├── manage.py
 ├── requirements.txt
@@ -270,6 +283,9 @@ Development works with no configuration. For any shared or production deployment
 | `CARECORE_ALLOWED_HOSTS` | Comma-separated host names |
 | `CARECORE_CSRF_TRUSTED_ORIGINS` | Comma-separated origins, e.g. `https://care.example.org` |
 | `CARECORE_TIME_ZONE` | e.g. `Europe/London` (default `UTC`) |
+| `CARECORE_DB_PATH` | Location of the SQLite file (default `db.sqlite3` in the project) |
+| `CARECORE_MEDIA_ROOT` | Where uploaded documents are stored |
+| `CARECORE_EMAIL_BACKEND`, `CARECORE_EMAIL_HOST`, `CARECORE_EMAIL_PORT`, `CARECORE_EMAIL_USER`, `CARECORE_EMAIL_PASSWORD`, `CARECORE_FROM_EMAIL` | SMTP for password-reset emails. In development, emails are printed to the console |
 
 ### 5. Run migrations
 
@@ -327,7 +343,9 @@ The command creates sample:
 * Observations, including a deteriorating resident who triggers NEWS2 escalation
 * Compliance documents, risks, an audit with controls and corrective actions
 
-Demo accounts (password `CareCoreDemo123!`): `admin@carecore.demo`, `manager@carecore.demo`, `rn@carecore.demo`, `careworker@carecore.demo`.
+Demo accounts (password `CareCoreDemo123!`): `admin@carecore.demo`, `manager@carecore.demo`, `rn@carecore.demo`, `en@carecore.demo`, `careworker@carecore.demo`.
+
+New accounts created through **Request access** must be approved by an administrator under *User Management* before they can sign in.
 
 Demo credentials are intended **only for local development** and must not be used in production.
 
@@ -372,7 +390,22 @@ Views are protected using authentication and permission decorators where appropr
 python manage.py test
 ```
 
-The suite covers NEWS2 boundary values for every parameter, risk bands and escalation, the composite risk score, alert rules and their permission filtering, quality-indicator calculations, CSV export safety, the risk matrix, audit compliance scoring, corrective-action lifecycle, role/permission group sync, email login, the audit trail, and a smoke test that renders every page as every role against the demo data.
+The suite (113 tests) covers NEWS2 boundary values for every parameter, risk bands and escalation, the composite risk score, alert rules and their permission filtering, quality-indicator calculations, CSV export safety, the risk matrix, audit compliance scoring, corrective-action lifecycle, role/permission group sync, email login, the audit trail, medication scheduling and the MAR, derived occupancy and room capacity, facility data segregation, login throttling, open-redirect protection, account approval, password reset, observation amendments, form submissions in every module, a check that risk scoring uses a constant number of queries, and a smoke test that renders every page as every role against the demo data.
+
+Continuous integration (`.github/workflows/ci.yml`) runs the system checks, a migrations check, `check --deploy` with production settings, and the full test suite on every push.
+
+---
+
+## Docker
+
+CareCore ships with a production-style image (gunicorn, static files via WhiteNoise, SQLite and uploads on a `/data` volume). Migrations run automatically on start.
+
+```bash
+CARECORE_SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(50))')" docker compose up --build
+docker compose exec web python manage.py createsuperuser   # or: seed_demo
+```
+
+Then open http://localhost:8000/. The compose file assumes no TLS proxy in front; behind HTTPS, drop `CARECORE_SSL_REDIRECT` / `CARECORE_SECURE_COOKIES` from it.
 
 ---
 
@@ -417,6 +450,9 @@ CareCore's core application functionality is implemented, including:
 * Compliance & governance registers
 * Clinical observations with NEWS2 early warning and escalation
 * Alert centre, resident risk register, shift handover and analytics
+* Medication dose scheduling, medication round and MAR chart
+* Facility data segregation, account approval, sign-in throttling and password reset
+* Docker image and CI pipeline
 * Automatic audit trail
 * Demo data generation
 * Automated test suite

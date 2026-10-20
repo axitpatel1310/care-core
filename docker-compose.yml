@@ -1,0 +1,18 @@
+# Local production-like run:  CARECORE_SECRET_KEY=... docker compose up --build
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      CARECORE_SECRET_KEY: ${CARECORE_SECRET_KEY:?set CARECORE_SECRET_KEY}
+      CARECORE_ALLOWED_HOSTS: ${CARECORE_ALLOWED_HOSTS:-localhost,127.0.0.1}
+      CARECORE_CSRF_TRUSTED_ORIGINS: ${CARECORE_CSRF_TRUSTED_ORIGINS:-http://localhost:8000}
+      # No TLS terminator in this compose file, so don't force HTTPS redirects/cookies here.
+      CARECORE_SSL_REDIRECT: "false"
+      CARECORE_SECURE_COOKIES: "false"
+    volumes:
+      - carecore-data:/data
+
+volumes:
+  carecore-data:
